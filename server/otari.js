@@ -26,6 +26,14 @@ const MAX_TOKENS = Number(process.env.OTARI_MAX_TOKENS) || 400;
 
 const mode = ADMIN_KEY ? 'managed' : API_KEY ? 'hosted' : 'off';
 
+// Catch a pasted *masked* key (e.g. "tk-abc••••wxyz") early: HTTP headers must be plain ASCII.
+for (const [name, val] of [['OTARI_API_KEY', API_KEY], ['OTARI_ADMIN_KEY', ADMIN_KEY]]) {
+  const bad = [...val].findIndex((c) => c.charCodeAt(0) > 126 || c.charCodeAt(0) < 33);
+  if (val && bad >= 0) {
+    console.error(`[otari] ${name} looks malformed (length ${val.length}, unexpected character at position ${bad}). Paste the full key, not the masked one from the dashboard.`);
+  }
+}
+
 class OtariError extends Error {
   constructor(status, message, { code, retryAfter, scope } = {}) {
     super(message);

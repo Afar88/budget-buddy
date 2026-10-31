@@ -8,6 +8,8 @@ Built for **[Developers Wilding: Online](https://otari.ai/devs-wilding)**, Mozil
 
 > Built by **Avie** ([@Afar88](https://github.com/Afar88))
 
+**Live demo:** https://budget-buddy-one-mu.vercel.app (Vercel Hobby + free Upstash Redis, hosted mode on otari.ai with `mistralai/mistral-small-3`; a two-message test cost about $0.000014).
+
 ---
 
 ## Why
@@ -108,6 +110,10 @@ The repo is ready for Vercel as-is: `api/index.js` runs the whole Express app as
 2. Vercel's disk does not persist between requests, so add storage: project **Storage → Create / Marketplace → Upstash (Redis)**, free plan, and connect it to the project. It injects `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_*`), and Budget Buddy switches to Redis automatically.
 3. In **Settings → Environment Variables** set `OTARI_API_KEY`, `ADMIN_PASSWORD`, `SESSION_SECRET` (any long random string; required so sign-ins survive across function instances) and optionally `OTARI_MODEL` and `GROUP_NAME`.
 4. Deploy (or redeploy after adding the variables). Open the URL, sign in as the grown-up, add a member, and share their join code.
+
+Tip: paste the **full** otari.ai key (it starts with `otk_`) as `OTARI_API_KEY`, not the masked one the dashboard lists later. The server logs `OTARI_API_KEY looks malformed` at start-up if it spots a masked or broken key.
+
+You can also deploy from the terminal: `vercel link`, `vercel env add ...` for the variables above, then `vercel deploy --prod`.
 
 Without the Redis variables the app falls back to the JSON file, which on Vercel would reset between requests, so don't skip step 2.
 
