@@ -87,7 +87,8 @@ OTARI_MODEL=<a model your gateway serves, e.g. openai:gpt-4o-mini>
 | `ADMIN_PASSWORD` | Password for the grown-up / teacher dashboard |
 | `SESSION_SECRET` | Long random string used to sign session cookies |
 | `GROUP_NAME` | Shown in the header, e.g. "Room 4B" |
-| `DATA_FILE` | JSON file for members and the usage ledger (default `./data/db.json`) |
+| `DATA_FILE` | JSON file for members and the usage ledger (default `./data/db.json`). Used when no Redis is configured |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Upstash Redis REST endpoint + token (injected by Vercel's Upstash/KV integration). When set, data lives in Redis instead of the JSON file. `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` also work |
 
 ### Tests
 
@@ -95,9 +96,22 @@ OTARI_MODEL=<a model your gateway serves, e.g. openai:gpt-4o-mini>
 npm test
 ```
 
-Runs the whole flow (create member → chat → hit the cap → change cap, pause, rotate, remove) against a small mock of the Otari API in `test/mock-otari.js`, in both modes. No Otari credit is spent.
+Runs the whole flow (create member → chat → hit the cap → change cap, pause, rotate, remove) against a small mock of the Otari API in `test/mock-otari.js`, in both modes, plus a Redis-store test (a fresh instance must see the data the first one saved) against a tiny Upstash REST mock. No Otari credit is spent.
 
 ## Deploy for free
+
+### Vercel (Hobby plan, free)
+
+The repo is ready for Vercel as-is: `api/index.js` runs the whole Express app as one serverless function, `vercel.json` rewrites `/api/*` to it, and `public/` is served as static files. There is no build step.
+
+1. On [vercel.com](https://vercel.com), **Add New → Project** and import this repo (branch `hackathon`). Framework preset: **Other**.
+2. Vercel's disk does not persist between requests, so add storage: project **Storage → Create / Marketplace → Upstash (Redis)**, free plan, and connect it to the project. It injects `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_*`), and Budget Buddy switches to Redis automatically.
+3. In **Settings → Environment Variables** set `OTARI_API_KEY`, `ADMIN_PASSWORD`, `SESSION_SECRET` (any long random string; required so sign-ins survive across function instances) and optionally `OTARI_MODEL` and `GROUP_NAME`.
+4. Deploy (or redeploy after adding the variables). Open the URL, sign in as the grown-up, add a member, and share their join code.
+
+Without the Redis variables the app falls back to the JSON file, which on Vercel would reset between requests, so don't skip step 2.
+
+### Any Node host
 
 It's a single Node process with no build step, so any free Node host works (Render, Railway's trial, Fly.io, Koyeb, a Raspberry Pi at school). Set the environment variables above in the host's dashboard. On hosts with an ephemeral disk, the JSON data file resets on redeploy; mount a volume or point `DATA_FILE` at persistent storage if you need it to last.
 
@@ -119,7 +133,9 @@ member browser ──► Budget Buddy (Express) ──► Otari gateway ──�
 ```
 server/index.js     Express routes: admin, members, chat
 server/otari.js     Otari client: chat, keys, budgets, users, usage
-server/store.js     JSON file store
+server/store.js     store: Upstash Redis (Vercel) or JSON file (local)
+api/index.js        Vercel serverless entry (wraps the Express app)
+vercel.json         Vercel routing: /api/* -> function, public/ static
 server/auth.js      signed-cookie sessions
 server/week.js      weekly reset boundary (Monday 00:00 UTC, matches Otari calendar_week)
 public/             plain HTML/CSS/JS front end, no build step

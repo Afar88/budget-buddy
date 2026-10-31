@@ -13,8 +13,19 @@ const app = express();
 app.use(express.json({ limit: '200kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-const db = store.load();
-if (process.env.GROUP_NAME) db.settings.groupName = process.env.GROUP_NAME;
+const db = store.db; // refreshed in place by store.load() before every API request
+
+// Load the latest state before each API call (Redis on Vercel, JSON file locally).
+app.use('/api', async (req, res, next) => {
+  try {
+    await store.load();
+    if (process.env.GROUP_NAME) db.settings.groupName = process.env.GROUP_NAME;
+    next();
+  } catch (e) {
+    console.error('[store]', e.message);
+    res.status(503).json({ error: 'Storage is not reachable right now. Try again in a moment.' });
+  }
+});
 
 const SYSTEM_PROMPT =
   process.env.SYSTEM_PROMPT ||
@@ -23,7 +34,7 @@ const SYSTEM_PROMPT =
     'encourage learning (explain, do not just hand over homework answers), and keep everything age-appropriate. ' +
     'If someone seems unsafe or upset, gently suggest talking to a trusted adult.';
 
-console.log(`[otari] mode=${otari.mode} base=${otari.BASE_URL} model=${otari.MODEL}`);
+console.log(`[otari] mode=${otari.mode} base=${otari.BASE_URL} model=${otari.MODEL} store=${store.backend}`);
 
 // ---------- usage ----------
 function ledgerFor(memberId) {
@@ -131,7 +142,7 @@ app.post('/api/admin/members', auth.requireAdmin, async (req, res) => {
     }
   }
   db.members.push(member);
-  store.save();
+  await store.save();
   res.status(201).json({ member: await publicMember(member, { forAdmin: true }) });
 });
 
@@ -154,7 +165,7 @@ app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
     return res.status(502).json({ error: `Otari update failed: ${e.message}` });
   }
   if (m.otari?.userId) userCache.delete(m.otari.userId);
-  store.save();
+  await store.save();
   res.json({ member: await publicMember(m, { forAdmin: true }) });
 });
 
@@ -166,7 +177,7 @@ app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) =>
   } catch (e) {
     return res.status(502).json({ error: `Otari rotate failed: ${e.message}` });
   }
-  store.save();
+  await store.save();
   res.json({ member: await publicMember(m, { forAdmin: true }) });
 });
 
@@ -175,7 +186,7 @@ app.delete('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
   if (!m) return res.status(404).json({ error: 'No such member' });
   if (m.otari) await otari.deprovision(m.otari);
   db.members = db.members.filter((x) => x.id !== m.id);
-  store.save();
+  await store.save();
   res.json({ ok: true });
 });
 
@@ -238,7 +249,7 @@ app.post('/api/chat', async (req, res) => {
       model: out.model,
       requestId: out.requestId,
     });
-    store.save();
+    await store.save();
     if (m.otari?.userId) userCache.delete(m.otari.userId);
     res.json({ reply: out.reply, costUsd: out.costUsd, model: out.model, requestId: out.requestId, member: await publicMember(m) });
   } catch (e) {

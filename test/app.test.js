@@ -85,3 +85,48 @@ test('hosted mode: shared key, tagged requests, app enforces cap from Otari cost
     assert.equal(list.body.members[0].requests, 9);
   } finally { app.stop(); o.srv.close(); }
 });
+
+// Minimal Upstash-style Redis REST mock: POST / with ["GET", key] or ["SET", key, value].
+function mockRedis() {
+  const http = require('node:http');
+  const data = new Map();
+  const srv = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', (c) => (raw += c));
+    req.on('end', () => {
+      if (req.headers.authorization !== 'Bearer redis-token') { res.writeHead(401); return res.end('{"error":"unauthorized"}'); }
+      const [cmd, key, value] = JSON.parse(raw);
+      let result = null;
+      if (cmd === 'GET') result = data.has(key) ? data.get(key) : null;
+      else if (cmd === 'SET') { data.set(key, value); result = 'OK'; }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ result }));
+    });
+  });
+  return new Promise((r) => srv.listen(0, '127.0.0.1', () => r({ srv, data, url: `http://127.0.0.1:${srv.address().port}` })));
+}
+
+test('redis store (Vercel/Upstash): state survives a fresh instance', async () => {
+  const o = await mock.start();
+  const r = await mockRedis();
+  const env = { OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key', KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token' };
+  const a = await boot(env);
+  let code;
+  try {
+    await a.call('admin', 'POST', '/api/admin/login', { password: 'pw' });
+    const created = await a.call('admin', 'POST', '/api/admin/members', { name: 'Cy', weeklyCapUsd: 0.5 });
+    assert.equal(created.status, 201);
+    code = created.body.member.code;
+    await a.call('kid', 'POST', '/api/member/login', { code });
+    assert.equal((await a.call('kid', 'POST', '/api/chat', { messages: [{ role: 'user', content: 'hi' }] })).status, 200);
+  } finally { a.stop(); }
+  assert.ok(r.data.get('budget-buddy:db'), 'state written to Redis');
+  const b = await boot(env); // a brand-new "serverless instance" with no local file
+  try {
+    await b.call('admin', 'POST', '/api/admin/login', { password: 'pw' });
+    const list = await b.call('admin', 'GET', '/api/admin/members');
+    assert.equal(list.body.members.length, 1);
+    assert.equal(list.body.members[0].code, code);
+    assert.equal(list.body.members[0].requests, 1);
+  } finally { b.stop(); o.srv.close(); r.srv.close(); }
+});
