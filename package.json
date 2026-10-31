@@ -1,0 +1,21 @@
+{
+  "name": "budget-buddy",
+  "version": "0.1.0",
+  "description": "AI chat for families and classrooms: every member gets their own weekly AI budget, powered by Otari.",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "keywords": ["otari", "mozilla-ai", "llm-gateway", "budgets", "family", "classroom"],
+  "author": "Avie (Afar88)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
