@@ -55,6 +55,8 @@ The dashboard badge shows which mode you're in.
 
 **Video (3:30, 1080p, narrated):** [`demo/budget-buddy-demo.mp4`](demo/budget-buddy-demo.mp4), narrated walkthrough of the live app: the shared-key problem, a grown-up adding members with weekly caps, a kid joining by code and chatting with the real Otari cost under every answer, live spend on the dashboard, pausing a member, and how it is built on Otari. Script and shot list: [`demo/SCRIPT.md`](demo/SCRIPT.md).
 
+**Otari feedback video (4:18, narrated):** [`demo/otari-feedback.mp4`](demo/otari-feedback.mp4): what I built and the Otari features used, what worked well, what didn't (hosted tenant keys can't manage keys/users/budgets; masked key confusion), and what I'd change (scoped admin keys on hosted, usage API with a normal key, budget alerts). Script: [`demo/FEEDBACK_SCRIPT.json`](demo/FEEDBACK_SCRIPT.json).
+
 | | |
 | --- | --- |
 | ![Join-code landing](demo/screenshots/01-landing.png) | ![Grown-up dashboard](demo/screenshots/02-admin-dashboard.png) |
