@@ -10,6 +10,20 @@ Built for **[Developers Wilding: Online](https://otari.ai/devs-wilding)**, Mozil
 
 **Live demo:** https://budget-buddy-one-mu.vercel.app (Vercel Hobby + free Upstash Redis, hosted mode on otari.ai with `mistralai/mistral-small-3`; a two-message test cost about $0.000014).
 
+## ⏱️ How to test in 2 minutes
+
+- **Watch:** the 3:30 narrated demo, [`demo/budget-buddy-demo.mp4`](demo/budget-buddy-demo.mp4).
+- **Member side, live:** open https://budget-buddy-one-mu.vercel.app, enter join code **`NM72XV`** (Ada, 14, $0.50/week; also `JA8MYW` Tobi, 11) and chat. Each answer shows its real Otari cost and the budget left this week.
+- **Grown-up side:** the live admin password is private, so run it locally (Node 18.17+). No Otari key needed: this uses the built-in fake Otari from the tests, in managed mode (own key + budget per member).
+
+```bash
+git clone -b hackathon https://github.com/Afar88/budget-buddy.git && cd budget-buddy && npm install
+node -e "require('./test/mock-otari').start(8787)" &
+OTARI_BASE_URL=http://127.0.0.1:8787/api/v1 OTARI_ADMIN_KEY=admin-key ADMIN_PASSWORD=test SESSION_SECRET=dev npm start
+```
+
+Open http://localhost:3000 → **Grown-up / teacher** → password `test` → add a member with a cap → join with their code in another browser and chat (replies say "Hello from mock Otari!"). Lower the cap, **Pause** or **Remove** and watch the dashboard. For real answers, use an [otari.ai](https://otari.ai) key instead (`OTARI_API_KEY=otk_... ADMIN_PASSWORD=test SESSION_SECRET=dev npm start`). `npm test` runs the full flow offline.
+
 ---
 
 ## Why
