@@ -28,7 +28,15 @@ async function api(path, opts = {}) {
   return data;
 }
 
-const usd = (n) => '$' + (Number(n) || 0).toFixed(n && n < 0.1 ? 4 : 2);
+// Money: whole cents for normal amounts; down to a millionth of a dollar for tiny AI costs
+// (one chat on a small open model is often well under a cent, e.g. $0.000007).
+function usd(n) {
+  n = Number(n) || 0;
+  if (n === 0 || n >= 1) return '$' + n.toFixed(2);
+  const s = n.toFixed(6).replace(/0+$/, '');
+  const decimals = Math.max(2, s.split('.')[1].length);
+  return '$' + n.toFixed(decimals);
+}
 
 function meterClass(pct) {
   return pct >= 100 ? 'bad' : pct >= 75 ? 'warn' : '';
@@ -187,10 +195,17 @@ function renderMe() {
   $('me-left').textContent = `${usd(left)} left this week · refills ${reset}`;
 }
 
+// Models often answer in Markdown. Show **bold** as bold and drop heading marks; everything else stays plain, escaped text.
+function lightMarkdown(s) {
+  return escapeHtml(s)
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
 function renderChat() {
   const h = loadHistory();
   $('chat').innerHTML = h.length
-    ? h.map((m) => `<div class="bubble ${m.role}">${escapeHtml(m.content)}${m.cost ? `<span class="cost">${m.cost}</span>` : ''}</div>`).join('')
+    ? h.map((m) => `<div class="bubble ${m.role}">${m.role === 'assistant' ? lightMarkdown(m.content) : escapeHtml(m.content)}${m.cost ? `<span class="cost">${m.cost}</span>` : ''}</div>`).join('')
     : '<p class="muted">Ask a question to get started. Try “Explain photosynthesis like I’m 10”.</p>';
   $('chat').scrollTop = $('chat').scrollHeight;
 }

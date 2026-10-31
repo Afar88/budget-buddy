@@ -23,6 +23,8 @@ const API_KEY = process.env.OTARI_API_KEY || '';
 const ADMIN_KEY = process.env.OTARI_ADMIN_KEY || '';
 const MODEL = process.env.OTARI_MODEL || 'mistralai/mistral-small-3';
 const MAX_TOKENS = Number(process.env.OTARI_MAX_TOKENS) || 400;
+// Low temperature: steadier, more factual answers for kids and homework help.
+const TEMPERATURE = process.env.OTARI_TEMPERATURE !== undefined && process.env.OTARI_TEMPERATURE !== '' ? Number(process.env.OTARI_TEMPERATURE) : 0.3;
 
 const mode = ADMIN_KEY ? 'managed' : API_KEY ? 'hosted' : 'off';
 
@@ -77,7 +79,7 @@ async function request(path, { method = 'GET', token, body, headers = {} } = {})
 }
 
 // ---------- chat ----------
-async function chat({ key, messages, tags = {}, model = MODEL, maxTokens = MAX_TOKENS }) {
+async function chat({ key, messages, tags = {}, model = MODEL, maxTokens = MAX_TOKENS, temperature = TEMPERATURE }) {
   const { data, headers } = await request('/chat/completions', {
     method: 'POST',
     token: key || API_KEY,
@@ -85,6 +87,7 @@ async function chat({ key, messages, tags = {}, model = MODEL, maxTokens = MAX_T
       model,
       messages,
       max_tokens: maxTokens, // a realistic cap keeps Otari's up-front budget hold small
+      ...(Number.isFinite(temperature) ? { temperature } : {}),
       metadata: { app: 'budget-buddy', ...tags }, // Otari request tags: filter/group usage by member
     },
   });

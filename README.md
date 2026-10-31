@@ -37,11 +37,22 @@ Budget Buddy picks a mode from your environment:
 
 The dashboard badge shows which mode you're in.
 
-## Screenshots
+## Demo
 
-_Coming soon: admin dashboard, member chat, and the "budget used up" moment._
+**Video (3:30, 1080p, narrated):** [`demo/budget-buddy-demo.mp4`](demo/budget-buddy-demo.mp4), narrated walkthrough of the live app: the shared-key problem, a grown-up adding members with weekly caps, a kid joining by code and chatting with the real Otari cost under every answer, live spend on the dashboard, pausing a member, and how it is built on Otari. Script and shot list: [`demo/SCRIPT.md`](demo/SCRIPT.md).
 
-<!-- ![Admin dashboard](docs/admin.png) ![Member chat](docs/chat.png) -->
+| | |
+| --- | --- |
+| ![Join-code landing](demo/screenshots/01-landing.png) | ![Grown-up dashboard](demo/screenshots/02-admin-dashboard.png) |
+| **Kids join with a 6-character code**, no email or password | **Grown-up dashboard**: weekly cap, join code, spend bar and chat count per member |
+| ![Adding a member](demo/screenshots/03-add-member.png) | ![Typing a join code](demo/screenshots/04-join-code.png) |
+| **Add a member** with a weekly cap; a join code is created instantly | **A member signs in** with their code |
+| ![Member chat with cost](demo/screenshots/05-member-chat-cost.png) | ![Member paused on the dashboard](demo/screenshots/06-admin-paused.png) |
+| **Every answer shows its real cost** (Otari's `usage.cost_usd`) and the weekly budget left | **Pause** a member with one tap |
+| ![Paused member is blocked](demo/screenshots/07-member-paused.png) | |
+| **Blocked before the model is called**, so it costs nothing. Reaching the weekly cap blocks the same way and refills on Monday. | |
+
+Recorded on the live Vercel deployment in hosted mode (`mistralai/mistral-small-3`). One chat costs about $0.00002, so money is shown down to a millionth of a dollar. To keep the admin password off screen, the recording signed the grown-up in through the API.
 
 ## Run it locally
 
@@ -86,6 +97,7 @@ OTARI_MODEL=<a model your gateway serves, e.g. openai:gpt-4o-mini>
 | `OTARI_ADMIN_KEY` | Optional. Enables managed mode (own key + budget per member) |
 | `OTARI_MODEL` | Model id or `provider:model` selector, default `mistralai/mistral-small-3` |
 | `OTARI_MAX_TOKENS` | Output cap per answer (default 400). Keeps answers short and Otari's up-front budget hold small |
+| `OTARI_TEMPERATURE` | Sampling temperature (default 0.3) for steadier, more factual answers |
 | `ADMIN_PASSWORD` | Password for the grown-up / teacher dashboard |
 | `SESSION_SECRET` | Long random string used to sign session cookies |
 | `GROUP_NAME` | Shown in the header, e.g. "Room 4B" |
