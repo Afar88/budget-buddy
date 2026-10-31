@@ -1,0 +1,19 @@
+# One-click free deploy on Render (https://render.com). Set the secret env vars in the dashboard.
+services:
+  - type: web
+    name: budget-buddy
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OTARI_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OTARI_MODEL
+        value: mistralai/mistral-small-3
