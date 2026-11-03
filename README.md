@@ -12,7 +12,7 @@ Built for **[Developers Wilding: Online](https://otari.ai/devs-wilding)**, Mozil
 
 ## ⏱️ How to test in 2 minutes
 
-- **Watch:** the 3:30 narrated demo, [`demo/budget-buddy-demo.mp4`](demo/budget-buddy-demo.mp4).
+- **Watch:** the 3:30 narrated demo, [`demo/budget-buddy-demo.mp4`](https://cdn.jsdelivr.net/gh/Afar88/budget-buddy@hackathon/demo/budget-buddy-demo.mp4).
 - **Member side, live:** open https://budget-buddy-one-mu.vercel.app, enter join code **`NM72XV`** (Ada, 14, $0.50/week; also `JA8MYW` Tobi, 11) and chat. Each answer shows its real Otari cost and the budget left this week.
 - **Grown-up side:** the live admin password is private, so run it locally (Node 18.17+). No Otari key needed: this uses the built-in fake Otari from the tests, in managed mode (own key + budget per member).
 
@@ -53,9 +53,9 @@ The dashboard badge shows which mode you're in.
 
 ## Demo
 
-**Video (3:30, 1080p, narrated):** [`demo/budget-buddy-demo.mp4`](demo/budget-buddy-demo.mp4), narrated walkthrough of the live app: the shared-key problem, a grown-up adding members with weekly caps, a kid joining by code and chatting with the real Otari cost under every answer, live spend on the dashboard, pausing a member, and how it is built on Otari. Script and shot list: [`demo/SCRIPT.md`](demo/SCRIPT.md).
+**Video (3:30, 1080p, narrated):** [`demo/budget-buddy-demo.mp4`](https://cdn.jsdelivr.net/gh/Afar88/budget-buddy@hackathon/demo/budget-buddy-demo.mp4), narrated walkthrough of the live app: the shared-key problem, a grown-up adding members with weekly caps, a kid joining by code and chatting with the real Otari cost under every answer, live spend on the dashboard, pausing a member, and how it is built on Otari. Script and shot list: [`demo/SCRIPT.md`](demo/SCRIPT.md).
 
-**Otari feedback video (4:18, narrated):** [`demo/otari-feedback.mp4`](demo/otari-feedback.mp4): what I built and the Otari features used, what worked well, what didn't (hosted tenant keys can't manage keys/users/budgets; masked key confusion), and what I'd change (scoped admin keys on hosted, usage API with a normal key, budget alerts). Script: [`demo/FEEDBACK_SCRIPT.json`](demo/FEEDBACK_SCRIPT.json).
+**Otari feedback video (4:18, narrated):** [`demo/otari-feedback.mp4`](https://cdn.jsdelivr.net/gh/Afar88/budget-buddy@hackathon/demo/otari-feedback.mp4): what I built and the Otari features used, what worked well, what didn't (hosted tenant keys can't manage keys/users/budgets; masked key confusion), and what I'd change (scoped admin keys on hosted, usage API with a normal key, budget alerts). Script: [`demo/FEEDBACK_SCRIPT.json`](demo/FEEDBACK_SCRIPT.json).
 
 | | |
 | --- | --- |
