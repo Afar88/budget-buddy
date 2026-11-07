@@ -102,7 +102,7 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 ## Security and known limitations
 
 - Parent/teacher member-management routes verify group ownership. Requests to edit, rotate or delete another group's member are rejected.
-- Admin login is limited to 10 attempts per IP per 15 minutes, group signup to 5, and member join-code login to 60 to avoid blocking a whole classroom behind one shared school network. These are per-running-server-instance limits. This in-memory limiter is not shared between Vercel instances. Configure Vercel Firewall rate limits for these endpoints before exposing the app to substantial public traffic.
+- Admin login is limited to 10 attempts per IP per 15 minutes, group signup to 5, and member join-code login to 60 to avoid blocking a whole classroom behind one shared school network. On Redis-backed deployments, these counters are atomic and shared across Vercel instances; if Redis is unavailable, sign-in endpoints fail closed with HTTP 503. Local development uses an in-memory fallback. Edge/WAF limits remain useful as an additional layer.
 - Treat join codes as credentials. Share them privately. The current app does not yet offer self-service join-code rotation.
 - Keep Redis connected on Vercel and use a strong `SESSION_SECRET`. Never commit environment files or send private Otari keys to the browser.
 - The Redis adapter stores app state as one JSON document, but state-changing API requests now acquire a distributed Redis lease before loading and saving it. This prevents concurrent Vercel instances from overwriting each other's snapshots. The lease lasts 120 seconds; keep Vercel function execution limits below that duration. If another writer holds the lease, the request fails closed with HTTP 503 and `Retry-After` rather than writing stale state. This is a safe low-volume workaround, not a substitute for a normalized transactional database at higher scale.
@@ -138,5 +138,6 @@ test/               Integration tests and mock Otari service
 
 ## Changelog
 
+- **2026-11-07:** Added atomic Redis-backed authentication throttling shared across Vercel instances, with fail-closed behaviour when Redis is unavailable and cross-instance coverage.
 - **2026-11-07:** Added a distributed Redis write lock for state-changing requests, fail-closed retry responses, and cross-instance contention coverage. Hosted chat budget checks and ledger writes now run within the same lock; README documents the throughput trade-off.
 - **2026-11-07:** Added private group signup, group-scoped member management, hosted/managed Otari modes and the mobile-first onboarding refresh.
