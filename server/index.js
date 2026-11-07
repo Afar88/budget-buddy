@@ -6,7 +6,7 @@ const path = require('path');
 const express = require('express');
 const store = require('./store');
 const auth = require('./auth');
-const email = require('./email');
+const emailService = require('./email');
 const otari = require('./otari');
 const { weekStart, nextReset } = require('./week');
 
@@ -166,7 +166,7 @@ app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5, 15 * 60 * 1000, 
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (db.groups.some((g) => g.email === email)) return res.status(409).json({ error: 'That email already has an account. Sign in instead.' });
   if (db.groups.length >= MAX_GROUPS) return res.status(503).json({ error: 'Sign-ups are full for this demo right now' });
-  if (!email.configured()) return res.status(503).json({ error: 'Email verification is not configured yet. Please try again later.' });
+  if (!emailService.configured()) return res.status(503).json({ error: 'Email verification is not configured yet. Please try again later.' });
   const token = auth.createToken();
   const group = {
     id: store.newId(), name, email, pw: auth.hashPassword(password), createdAt: Date.now(),
@@ -175,7 +175,7 @@ app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5, 15 * 60 * 1000, 
   db.groups.push(group);
   await store.save();
   try {
-    await email.sendVerification(group, token);
+    await emailService.sendVerification(group, token);
   } catch (e) {
     db.groups = db.groups.filter((g) => g.id !== group.id);
     await store.save();
@@ -201,7 +201,7 @@ app.post('/api/admin/verify-email', auth.rateLimit('verify-email', 10, 15 * 60 *
 });
 
 app.post('/api/admin/resend-verification', auth.rateLimit('resend-verification', 3, 60 * 60 * 1000, store), async (req, res) => {
-  if (!email.configured()) return res.status(503).json({ error: 'Email delivery is not configured yet.' });
+  if (!emailService.configured()) return res.status(503).json({ error: 'Email delivery is not configured yet.' });
   const address = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
   const group = db.groups.find((g) => g.email === address && g.emailVerified === false);
   if (group) {
@@ -209,7 +209,7 @@ app.post('/api/admin/resend-verification', auth.rateLimit('resend-verification',
     group.verificationTokenHash = auth.hashToken(token);
     group.verificationExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
     await store.save();
-    try { await email.sendVerification(group, token); }
+    try { await emailService.sendVerification(group, token); }
     catch (e) {
       console.error('[email] verification resend failed:', e.message);
       return res.status(503).json({ error: 'We could not send the email right now. Please try again later.' });
@@ -219,7 +219,7 @@ app.post('/api/admin/resend-verification', auth.rateLimit('resend-verification',
 });
 
 app.post('/api/admin/forgot-password', auth.rateLimit('forgot-password', 5, 15 * 60 * 1000, store), async (req, res) => {
-  if (!email.configured()) return res.status(503).json({ error: 'Password recovery email is not configured yet.' });
+  if (!emailService.configured()) return res.status(503).json({ error: 'Password recovery email is not configured yet.' });
   const address = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
   const group = db.groups.find((g) => g.email === address && g.emailVerified !== false);
   if (group) {
@@ -227,7 +227,7 @@ app.post('/api/admin/forgot-password', auth.rateLimit('forgot-password', 5, 15 *
     group.resetTokenHash = auth.hashToken(token);
     group.resetExpiresAt = Date.now() + 45 * 60 * 1000;
     await store.save();
-    try { await email.sendPasswordReset(group, token); }
+    try { await emailService.sendPasswordReset(group, token); }
     catch (e) { console.error('[email] password reset delivery failed:', e.message); }
   }
   res.json({ ok: true, message: 'If an account exists for that email, a password reset link has been sent.' });
