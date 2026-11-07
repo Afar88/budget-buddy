@@ -12,9 +12,24 @@
   <header class="top">
     <a class="brand" href="/">🪙 <b>Budget Buddy</b></a>
     <span id="group" class="muted"></span>
-    <nav>
+    <nav class="top-nav">
       <button id="nav-admin" class="link">Grown-up / teacher</button>
-      <button id="nav-logout" class="link hidden">Sign out</button>
+      <div id="account-menu" class="account-menu hidden">
+        <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu-panel">
+          <span></span><span></span><span></span>
+        </button>
+        <div id="menu-panel" class="menu-panel hidden" role="menu" aria-label="Account menu">
+          <p id="menu-heading" class="menu-heading">Menu</p>
+          <div id="menu-budget" class="menu-budget hidden" aria-label="Weekly budget">
+            <p class="menu-budget-title">Weekly budget</p>
+            <div class="meter"><div id="me-bar"></div></div>
+            <span id="me-left" class="small"></span>
+          </div>
+          <button id="menu-primary" type="button" role="menuitem">Dashboard</button>
+          <button id="menu-secondary" type="button" role="menuitem">Refresh</button>
+          <button id="menu-logout" type="button" role="menuitem" class="menu-signout">Sign out</button>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -100,11 +115,24 @@
           <span class="muted small"><span class="dot"></span> Live · resets Monday 00:00 UTC</span>
         </div>
         <div id="totals" class="totals"></div>
+        <p class="muted small">Your children’s profiles and controls are in Group dashboard.</p>
+        <button id="open-group" type="button" class="ghost">View group dashboard</button>
+      </div>
+    </section>
+
+    <!-- Group dashboard: child profiles and management -->
+    <section id="view-admin-group" class="view hidden">
+      <div class="card">
+        <div class="spread">
+          <div><p class="eyebrow">YOUR GROUP</p><h1 id="group-title">Group dashboard</h1></div>
+          <button id="back-dashboard" type="button" class="ghost">Back</button>
+        </div>
+        <p class="muted small">Manage each child’s join code, weekly budget, AI access and account status here.</p>
         <table class="members">
-          <thead><tr><th>Member</th><th>Join code</th><th>Spent vs cap</th><th>Requests</th><th>Otari key</th><th></th></tr></thead>
+          <thead><tr><th>Child</th><th>Join code</th><th>Spent vs cap</th><th>Requests</th><th>AI key</th><th>Controls</th></tr></thead>
           <tbody id="members"></tbody>
         </table>
-        <p id="empty" class="empty hidden">No members yet. Add your first one above, then share their join code.</p>
+        <p id="empty" class="empty hidden">No children yet. Add your first child from the dashboard.</p>
       </div>
     </section>
 
@@ -113,11 +141,8 @@
       <div class="card">
         <div class="spread">
           <h1 id="hello">Hi!</h1>
-          <div class="meter-wrap">
-            <div class="meter"><div id="me-bar"></div></div>
-            <span id="me-left" class="small"></span>
-          </div>
         </div>
+        <div id="member-status" class="member-status hidden" role="status"></div>
         <div id="chat" class="chat"></div>
         <div id="chips" class="chips"></div>
         <form id="form-chat" class="row">
@@ -125,7 +150,7 @@
           <button id="send" type="submit">Send</button>
         </form>
         <p id="chat-error" class="error"></p>
-        <p class="muted small">Every answer costs a tiny bit of your weekly budget. <button id="clear" class="link small">Clear chat</button></p>
+        <p class="muted small">Every answer costs a tiny bit of your weekly budget. Your chat history stays here until you clear it from the menu.</p>
       </div>
     </section>
   </main>
