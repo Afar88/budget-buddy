@@ -149,7 +149,9 @@ test('open sign-up: each grown-up gets a private group with limits', async () =>
     assert.equal(listA.body.members.length, 1);
     const listB = await app.call('b', 'GET', '/api/admin/members');
     assert.equal(listB.body.members.length, 0, 'groups are private');
-    assert.equal((await app.call('b', 'PATCH', `/api/admin/members/${ada.body.member.id}`, { weeklyCapUsd: 0.75 })).status, 404);\n    assert.equal((await app.call('b', 'POST', `/api/admin/members/${ada.body.member.id}/rotate`)).status, 404);\n    assert.equal((await app.call('b', 'DELETE', `/api/admin/members/${ada.body.member.id}`)).status, 404);
+    assert.equal((await app.call('b', 'PATCH', `/api/admin/members/${ada.body.member.id}`, { weeklyCapUsd: 0.75 })).status, 404);
+    assert.equal((await app.call('b', 'POST', `/api/admin/members/${ada.body.member.id}/rotate`)).status, 404);
+    assert.equal((await app.call('b', 'DELETE', `/api/admin/members/${ada.body.member.id}`)).status, 404);
 
     assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'nope1234' })).status, 401);
     assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' })).status, 200);
