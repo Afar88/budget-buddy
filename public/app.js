@@ -21,7 +21,7 @@ function show(name) {
   $('menu-budget').classList.toggle('hidden', name !== 'chat');
   $('menu-primary').classList.toggle('hidden', name === 'chat');
   $('menu-primary').textContent = name === 'admin-group' ? 'Back to dashboard' : 'Group dashboard';
-  $('menu-secondary').textContent = name === 'admin' || name === 'admin-group' ? 'Refresh members' : 'Clear chat';
+  $('menu-secondary').textContent = name === 'admin' || name === 'admin-group' ? 'Refresh members' : 'Clear chat history';
   if (!['admin','admin-group'].includes(name)) clearInterval(pollTimer);
   closeMenu();
 }
@@ -359,11 +359,6 @@ $('form-chat').addEventListener('submit', async (e) => {
     renderChat();
     $('msg').focus();
   }
-});
-
-$('clear').addEventListener('click', () => {
-  localStorage.removeItem(historyKey());
-  renderChat();
 });
 
 // ---------- boot ----------
