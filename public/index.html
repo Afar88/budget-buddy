@@ -6,11 +6,11 @@
   <title>Budget Buddy</title>
   <meta name="description" content="AI chat for families and classrooms, with a weekly budget for everyone. Powered by Otari." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/style.css?v=20261107" />
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="/">🪙 <b>Budget Buddy</b></a>
+    <a class="brand" href="/" aria-label="Budget Buddy home"><span class="brand-mark" aria-hidden="true">B</span><b>Budget Buddy</b></a>
     <span id="group" class="muted"></span>
     <nav class="top-nav">
       <div id="account-menu" class="account-menu hidden">
@@ -37,8 +37,8 @@
     <section id="view-landing" class="view">
       <div class="hero">
         <span class="pill">Powered by Otari from Mozilla.ai</span>
-        <h1>AI help for kids and classes,<br /><span class="hl">with a weekly allowance.</span></h1>
-        <p class="lead">Every member gets their own AI budget, like pocket money. Grown-ups see spending live and can change it any time.</p>
+        <h1>A smarter way to manage<br /><span class="hl">everyday AI budgets.</span></h1>
+        <p class="lead">Give every child or student a simple weekly AI allowance. Set clear limits, follow spending as it happens, and make room for learning.</p>
       </div>
       <div class="split">
         <div class="card door">
@@ -141,11 +141,13 @@
 
     <!-- Admin dashboard -->
     <section id="view-admin" class="view hidden">
-      <div class="card">
+      <div class="card workspace-card">
+        <p class="eyebrow">YOUR WORKSPACE</p>
         <div class="spread">
           <h1 id="admin-title">Your group</h1>
           <span id="mode-badge" class="badge"></span>
         </div>
+        <p class="section-intro muted">Add a member and set the amount they can use each week.</p>
         <form id="form-member" class="row wrap">
           <input id="m-name" placeholder="Name (e.g. Ada)" maxlength="40" required />
           <label class="inline">$ <input id="m-cap" type="number" step="0.01" min="0.01" max="100" value="0.50" required /> / week</label>
@@ -154,7 +156,8 @@
         <p id="limits" class="muted small hidden"></p>
         <p id="member-error" class="error" role="alert" aria-live="polite"></p>
       </div>
-      <div class="card">
+      <div class="card overview-card">
+        <p class="eyebrow">AT A GLANCE</p>
         <div class="spread">
           <h2>This week</h2>
           <span class="muted small"><span class="dot"></span> Live · resets Monday 00:00 UTC</span>
@@ -172,7 +175,8 @@
           <div><p class="eyebrow">YOUR GROUP</p><h1 id="group-title">Group dashboard</h1></div>
           <button id="back-dashboard" type="button" class="ghost">Back</button>
         </div>
-        <p class="muted small">Manage each child’s join code, weekly budget, AI access and account status here.</p>
+        <p class="muted small">Manage join codes, weekly budgets and AI access for everyone in your group.</p>
+        <div class="table-heading"><div><h2>Group members</h2><p class="muted small">Your members and their weekly usage</p></div></div>
         <table class="members">
           <thead><tr><th>Child</th><th>Join code</th><th>Spent vs cap</th><th>Requests</th><th>AI key</th><th>Controls</th></tr></thead>
           <tbody id="members"></tbody>
