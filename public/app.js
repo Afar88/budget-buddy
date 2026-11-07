@@ -4,12 +4,59 @@ const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'chat'];
 let pollTimer = null;
 let me = null;
 
+function closeMenu() {
+  $('menu-panel').classList.add('hidden');
+  $('menu-toggle').setAttribute('aria-expanded', 'false');
+  $('menu-toggle').setAttribute('aria-label', 'Open menu');
+}
+
 function show(name) {
   views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
-  $('nav-logout').classList.toggle('hidden', !(name === 'admin' || name === 'chat'));
-  $('nav-admin').classList.toggle('hidden', name === 'admin');
+  const signedIn = name === 'admin' || name === 'chat';
+  $('account-menu').classList.toggle('hidden', !signedIn);
+  $('nav-admin').classList.toggle('hidden', signedIn);
+  $('menu-heading').textContent = name === 'admin' ? 'Parent / teacher' : 'Teen account';
+  $('menu-primary').textContent = name === 'admin' ? 'Group dashboard' : 'My budget';
+  $('menu-secondary').textContent = name === 'admin' ? 'Refresh members' : 'Clear chat';
+  closeMenu();
   clearInterval(pollTimer);
 }
+
+// Account menu: the parent and member see different actions.
+$('menu-toggle').addEventListener('click', () => {
+  const opening = $('menu-panel').classList.contains('hidden');
+  $('menu-panel').classList.toggle('hidden', !opening);
+  $('menu-toggle').setAttribute('aria-expanded', String(opening));
+  $('menu-toggle').setAttribute('aria-label', opening ? 'Close menu' : 'Open menu');
+});
+document.addEventListener('click', (e) => {
+  if (!$('account-menu').contains(e.target)) closeMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeMenu();
+});
+$('menu-primary').addEventListener('click', () => {
+  closeMenu();
+  if (me) $('me-bar').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else $('admin-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+$('menu-secondary').addEventListener('click', async () => {
+  closeMenu();
+  if (me) {
+    localStorage.removeItem(historyKey());
+    renderChat();
+  } else {
+    $('menu-secondary').disabled = true;
+    await refreshMembers();
+    $('menu-secondary').disabled = false;
+  }
+});
+$('menu-logout').addEventListener('click', async () => {
+  closeMenu();
+  await api('/api/logout', { method: 'POST' }).catch(() => {});
+  me = null;
+  show('landing');
+});
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -65,11 +112,6 @@ $('nav-admin').addEventListener('click', async () => {
   } catch {
     show('admin-login');
   }
-});
-
-$('nav-logout').addEventListener('click', async () => {
-  await api('/api/logout', { method: 'POST' }).catch(() => {});
-  show('landing');
 });
 
 // ---------- admin ----------
