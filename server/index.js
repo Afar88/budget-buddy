@@ -203,7 +203,7 @@ app.post('/api/admin/verify-email', auth.rateLimit('verify-email', 10, 15 * 60 *
 app.post('/api/admin/resend-verification', auth.rateLimit('resend-verification', 3, 60 * 60 * 1000, store), async (req, res) => {
   if (!email.configured()) return res.status(503).json({ error: 'Email delivery is not configured yet.' });
   const address = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
-  const group = db.groups.find((g) => g.email === address && !g.emailVerified);
+  const group = db.groups.find((g) => g.email === address && g.emailVerified === false);
   if (group) {
     const token = auth.createToken();
     group.verificationTokenHash = auth.hashToken(token);
