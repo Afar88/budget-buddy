@@ -18,6 +18,52 @@ A parent or teacher creates a private group, adds members, sets a weekly AI budg
 
 The live demo uses hosted Otari mode and a shared, capped Otari key. New self-service groups are limited by `SIGNUP_MAX_MEMBERS` (default 10) and `SIGNUP_MAX_CAP_USD` (default $1.00 per member per week). A demo join code may be displayed in the live app; use your own group and code for private testing.
 
+## How to Use Budget Buddy
+
+Budget Buddy separates duties between grown-ups (who manage accounts, budgets, and keys) and learners (who access safe AI chat using friction-free join codes).
+
+### 1. For Parents and Teachers (Grown-Up Dashboard)
+
+* **Create & Verify Account**:
+  1. Click **Create free account** on the home screen.
+  2. Enter a group name (e.g., *The Smiths* or *Class 5B*), your email, and a secure password (8+ characters).
+  3. Check your email inbox and click **Verify my email** to activate your account.
+  4. *(Tip: If you ever lose your password, use **Forgot password?** to receive a single-use 45-minute reset link).*
+
+* **Add Members & Assign Budgets**:
+  1. Once logged into your dashboard, enter each child or student’s name.
+  2. Set their weekly AI spending cap in dollars (e.g., `$0.50` or `$1.00`).
+  3. Click **Add member**. Budget Buddy creates a unique, kid-friendly 6-character join code (e.g., `K9M2PX`, using characters with no look-alikes like `0/O` or `1/I/L`).
+
+* **Share the Join Code**:
+  * Privately give each learner their 6-character join code. They do not need an email, phone number, or password to log in.
+
+* **Live Monitoring & Safety Controls**:
+  * **Real-Time Usage**: Monitor exact spent amounts, message counts, and live cost-per-chat.
+  * **Automatic Refills**: Member budgets automatically reset every **Monday at 00:00 UTC**.
+  * **Pause Access**: Toggle a member to "Paused" to temporarily disable chat without deleting their profile.
+  * **Adjust Limits**: Change weekly spending caps up or down on the fly.
+  * **Remove Member**: Delete a profile to revoke access and clean up associated Otari virtual keys.
+
+---
+
+### 2. For Children and Students (Kid-Friendly AI Chat)
+
+* **Instant Sign-In**:
+  1. Open Budget Buddy on any phone, tablet, Chromebook, or browser.
+  2. Enter your **6-character join code** and tap **Start chatting**. No personal details or passwords are requested.
+
+* **Engaging, Safe AI Helper**:
+  * Ask questions about science, history, coding, or language.
+  * Budget Buddy explains concepts step-by-step to help you learn, rather than simply handing over homework answers.
+  * Tap any of the starter idea chips for inspiration.
+
+* **Weekly Budget Transparency**:
+  * The top status bar shows your remaining weekly budget and exact costs per prompt.
+  * If your cap is reached, Budget Buddy kindly informs you that your balance refills on Monday morning.
+
+---
+
 ## How budgeting works
 
 Budget Buddy supports two Otari configurations:
