@@ -102,8 +102,8 @@ function mockRedis() {
         if (options.includes('NX') && data.has(key)) result = null;
         else { data.set(key, value); result = 'OK'; }
       } else if (cmd === 'EVAL') {
-        const lockKey = options[1];
-        const token = options[2];
+        const lockKey = options[0];
+        const token = options[1];
         if (data.get(lockKey) === token) { data.delete(lockKey); result = 1; }
         else result = 0;
       }
