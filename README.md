@@ -95,7 +95,8 @@ Never commit `.env` or expose an Otari key in browser code.
 1. Import this repository into Vercel and select the `hackathon` branch.
 2. Add an Upstash Redis integration and connect it to the project. Vercel's filesystem is ephemeral; the JSON-file fallback is not suitable for persistent production data.
 3. Add `OTARI_API_KEY`, `ADMIN_PASSWORD` and a unique, high-entropy `SESSION_SECRET` to the Vercel environment variables. Add `OTARI_ADMIN_KEY` only if using managed mode. Set optional model and group settings as needed.
-4. Deploy and verify account creation, member join, a chat request and dashboard usage.
+4. For email verification and password recovery, choose one provider. **No-domain option:** create a Sendliberty account, connect a Gmail account through Google's OAuth consent screen, generate an API key, then add `SENDLIBERTY_API_KEY`, `SENDLIBERTY_FROM` (the connected Gmail address), and `APP_BASE_URL` to Vercel Production. **Resend option:** verify a sending domain, then add `RESEND_API_KEY`, `EMAIL_FROM` and `APP_BASE_URL`. Redeploy after adding the variables. Never commit provider keys.
+5. Deploy and verify account creation, email verification, password recovery, member join, a chat request and dashboard usage.
 
 The project has no frontend build step. `api/index.js` serves the Express app as a Vercel function, while `public/` contains the static frontend.
 
@@ -107,7 +108,8 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 - Keep Redis connected on Vercel and use a strong `SESSION_SECRET`. Never commit environment files or send private Otari keys to the browser.
 - The Redis adapter stores app state as one JSON document, but state-changing API requests now acquire a distributed Redis lease before loading and saving it. This prevents concurrent Vercel instances from overwriting each other's snapshots. The lease lasts 120 seconds; keep Vercel function execution limits below that duration. If another writer holds the lease, the request fails closed with HTTP 503 and `Retry-After` rather than writing stale state. This is a safe low-volume workaround, not a substitute for a normalized transactional database at higher scale.
 - Hosted-mode budget checks and ledger writes run under the same distributed write lock, preventing overlapping chats from both spending the same remaining balance. The trade-off is that writes and chat requests are serialized across the whole app, so throughput is intentionally limited. A future normalized data model can replace this coarse lock with per-member atomic reservations.
-- Email verification and password recovery are not implemented yet. Do not rely on the current signup flow as a full identity-verification system.
+- New self-service accounts must verify their email before signing in. Verification links expire after 24 hours; resend requests are rate-limited. Password reset links expire after 45 minutes, are single-use, and store only token hashes. Resetting a password invalidates existing admin sessions. Legacy accounts without an `emailVerified` field remain verified so existing users are not locked out.
+- Email delivery supports Sendliberty (Gmail OAuth relay; no custom domain required) or Resend (verified sending domain required). Signup is unavailable until one provider is configured; `APP_BASE_URL` must point to the canonical public app URL so email links return to the correct deployment. Forgot-password responses do not reveal whether an email address has an account. Sendliberty is a third-party relay: review its privacy policy and Google OAuth permissions before connecting a production Gmail account.
 
 ## Tests
 
@@ -115,7 +117,7 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 npm test
 ```
 
-The Node test suite uses a mock Otari API and covers managed mode, hosted mode, weekly cap behavior, member management, Redis persistence across fresh instances, distributed write-lock contention across separate app instances, group isolation and authentication throttling. It does not spend Otari credits.
+The Node test suite uses mock Otari, Redis and email services and covers managed mode, hosted mode, weekly cap behavior, member management, Redis persistence across fresh instances, distributed write-lock contention, email verification, password recovery, session invalidation and authentication throttling. It does not send real email or spend Otari credits.
 
 ## Project structure
 
@@ -138,6 +140,7 @@ test/               Integration tests and mock Otari service
 
 ## Changelog
 
+- **2026-11-07:** Added domain-free Sendliberty Gmail-relay support alongside Resend for verification and password recovery; both use expiring hashed one-time tokens, rate limits and session invalidation on password reset.
 - **2026-11-07:** Added atomic Redis-backed authentication throttling shared across Vercel instances, with fail-closed behaviour when Redis is unavailable and cross-instance coverage.
 - **2026-11-07:** Added a distributed Redis write lock for state-changing requests, fail-closed retry responses, and cross-instance contention coverage. Hosted chat budget checks and ledger writes now run within the same lock; README documents the throughput trade-off.
 - **2026-11-07:** Added private group signup, group-scoped member management, hosted/managed Otari modes and the mobile-first onboarding refresh.

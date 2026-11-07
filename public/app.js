@@ -1,6 +1,7 @@
 // Budget Buddy front end: plain JS, no build step.
 const $ = (id) => document.getElementById(id);
-const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'admin-group', 'chat'];
+const views = ['landing', 'admin-login', 'admin-signup', 'forgot', 'reset', 'verified', 'admin', 'admin-group', 'chat'];
+let resetToken = null;
 let pollTimer = null;
 let me = null;
 let activeView = 'landing';
@@ -140,9 +141,16 @@ $('form-admin').addEventListener('submit', async (e) => {
   try {
     await api('/api/admin/login', { method: 'POST', body: { email: $('admin-email').value, password: $('admin-pass').value } });
     $('admin-pass').value = '';
+    $('auth-notice').textContent = '';
     openAdmin();
   } catch (err) {
-    $('admin-error').textContent = err.message;
+    if (err.status === 403) {
+      $('resend-email').value = $('admin-email').value;
+      $('verify-message').textContent = err.message;
+      show('verified');
+    } else {
+      $('admin-error').textContent = err.message;
+    }
   } finally {
     setFormBusy(form, false);
   }
@@ -154,6 +162,47 @@ $('signup-back').addEventListener('click', () => show('landing'));
 $('cta-signup').addEventListener('click', () => show('admin-signup'));
 $('cta-login').addEventListener('click', () => show('admin-login'));
 $('to-login').addEventListener('click', () => show('admin-login'));
+$('forgot-open').addEventListener('click', () => { $('forgot-email').value = $('admin-email').value; $('forgot-message').textContent = ''; show('forgot'); });
+$('forgot-back').addEventListener('click', () => show('admin-login'));
+$('verified-login').addEventListener('click', () => show('admin-login'));
+
+$('form-forgot').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  $('forgot-message').textContent = '';
+  setFormBusy(form, true, 'Sending…');
+  try {
+    const out = await api('/api/admin/forgot-password', { method: 'POST', body: { email: $('forgot-email').value } });
+    $('forgot-message').textContent = out.message;
+  } catch (err) { $('forgot-message').textContent = err.message; }
+  finally { setFormBusy(form, false); }
+});
+
+$('form-resend').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  $('resend-message').textContent = '';
+  setFormBusy(form, true, 'Sending…');
+  try {
+    const out = await api('/api/admin/resend-verification', { method: 'POST', body: { email: $('resend-email').value } });
+    $('resend-message').textContent = out.message;
+  } catch (err) { $('resend-message').textContent = err.message; }
+  finally { setFormBusy(form, false); }
+});
+
+$('form-reset').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  $('reset-message').textContent = '';
+  setFormBusy(form, true, 'Updating…');
+  try {
+    const out = await api('/api/admin/reset-password', { method: 'POST', body: { token: resetToken, password: $('reset-pass').value } });
+    $('reset-pass').value = '';
+    show('admin-login');
+    $('auth-notice').textContent = out.message;
+  } catch (err) { $('reset-message').textContent = err.message; }
+  finally { setFormBusy(form, false); }
+});
 
 $('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -161,12 +210,14 @@ $('form-signup').addEventListener('submit', async (e) => {
   $('signup-error').textContent = '';
   setFormBusy(form, true, 'Creating account…');
   try {
-    await api('/api/admin/signup', {
+    const out = await api('/api/admin/signup', {
       method: 'POST',
       body: { groupName: $('su-group').value, email: $('su-email').value, password: $('su-pass').value },
     });
     $('su-pass').value = '';
-    openAdmin();
+    $('resend-email').value = out.email || $('su-email').value;
+    $('verify-message').textContent = 'We sent a verification link to ' + (out.email || $('su-email').value) + '. Open it to activate your account.';
+    show('verified');
   } catch (err) {
     $('signup-error').textContent = err.message;
   } finally {
@@ -392,5 +443,25 @@ $('form-chat').addEventListener('submit', async (e) => {
     const cfg = await api('/api/config');
     $('group').textContent = cfg.groupName ? '· ' + cfg.groupName : '';
   } catch {}
+  const params = new URLSearchParams(location.search);
+  const verify = params.get('verify');
+  const reset = params.get('reset');
+  if (verify) {
+    try {
+      await api('/api/admin/verify-email', { method: 'POST', body: { token: verify } });
+      $('auth-notice').textContent = 'Email verified. You can now sign in.';
+    } catch (err) {
+      $('auth-notice').textContent = err.message;
+    }
+    history.replaceState({}, '', '/');
+    show('admin-login');
+    return;
+  }
+  if (reset) {
+    resetToken = reset;
+    history.replaceState({}, '', '/');
+    show('reset');
+    return;
+  }
   openChat();
 })();
