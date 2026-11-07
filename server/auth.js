@@ -118,7 +118,13 @@ function requireAdmin(req, res, next) {
     return next();
   }
   if (v && v.startsWith('admin:')) {
-    req.groupId = v.slice(6);
+    const [groupId, version] = v.slice(6).split(':');
+    const group = require('./store').db.groups.find((g) => g.id === groupId);
+    if (!group || (group.sessionVersion && version !== group.sessionVersion)) {
+      res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
+      return;
+    }
+    req.groupId = groupId;
     return next();
   }
   res.status(401).json({ error: 'Admin sign-in required' });
