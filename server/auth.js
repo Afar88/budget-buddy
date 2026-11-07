@@ -1,6 +1,30 @@
 // Minimal signed-cookie sessions (no extra dependencies).
 const crypto = require('crypto');
 
+// Per-process baseline throttling. On serverless hosts, also configure edge/WAF limits
+// because separate function instances do not share this in-memory counter.
+const attempts = new Map();
+function rateLimit(scope, max = 10, windowMs = 15 * 60 * 1000) {
+  return (req, res, next) => {
+    const key = `${scope}:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+    const now = Date.now();
+    let entry = attempts.get(key);
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 0, resetAt: now + windowMs };
+      attempts.set(key, entry);
+    }
+    entry.count += 1;
+    if (attempts.size > 10000) {
+      for (const [k, v] of attempts) if (v.resetAt <= now) attempts.delete(k);
+    }
+    if (entry.count > max) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))));
+      return res.status(429).json({ error: 'Too many attempts. Please wait a little and try again.' });
+    }
+    next();
+  };
+}
+
 const SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 if (!process.env.SESSION_SECRET) {
   console.warn('[auth] SESSION_SECRET not set: sessions reset on every restart.');
@@ -87,4 +111,4 @@ function memberIdFrom(req) {
   return v && v.startsWith('member:') ? v.slice(7) : null;
 }
 
-module.exports = { sign, verify, setCookie, clearCookie, checkPassword, hashPassword, checkHash, requireAdmin, memberIdFrom };
+module.exports = { sign, verify, setCookie, clearCookie, checkPassword, hashPassword, checkHash, requireAdmin, memberIdFrom, rateLimit };

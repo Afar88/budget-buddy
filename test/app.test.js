@@ -21,7 +21,7 @@ async function boot(env) {
       method, headers: { 'content-type': 'application/json', cookie: jar[who] || '' }, body: body && JSON.stringify(body),
     });
     const sc = res.headers.get('set-cookie'); if (sc) jar[who] = sc.split(';')[0];
-    return { status: res.status, body: await res.json() };
+    return { status: res.status, retryAfter: res.headers.get('retry-after'), body: await res.json() };
   };
   return { call, stop: () => { child.kill(); fs.rmSync(dataFile, { force: true }); } };
 }
@@ -149,6 +149,8 @@ test('open sign-up: each grown-up gets a private group with limits', async () =>
     assert.equal(listA.body.members.length, 1);
     const listB = await app.call('b', 'GET', '/api/admin/members');
     assert.equal(listB.body.members.length, 0, 'groups are private');
+    assert.equal((await app.call('b', 'PATCH', `/api/admin/members/${ada.body.member.id}`, { weeklyCapUsd: 0.75 })).status, 404);
+    assert.equal((await app.call('b', 'POST', `/api/admin/members/${ada.body.member.id}/rotate`)).status, 404);
     assert.equal((await app.call('b', 'DELETE', `/api/admin/members/${ada.body.member.id}`)).status, 404);
 
     assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'nope1234' })).status, 401);
@@ -163,4 +165,23 @@ test('open sign-up: each grown-up gets a private group with limits', async () =>
     app.stop();
     o.srv.close();
   }
+});
+
+
+test('authentication endpoints throttle repeated attempts', async () => {
+  const o = await mock.start();
+  const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
+  try {
+    for (let i = 0; i < 10; i++) {
+      assert.equal((await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' })).status, 401);
+    }
+    const blockedAdmin = await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' });
+    assert.equal(blockedAdmin.status, 429);
+    assert.ok(Number(blockedAdmin.retryAfter) > 0, 'rate limit includes Retry-After');
+
+    for (let i = 0; i < 60; i++) {
+      assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 401);
+    }
+    assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 429);
+  } finally { app.stop(); o.srv.close(); }
 });

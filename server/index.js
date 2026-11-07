@@ -10,6 +10,8 @@ const otari = require('./otari');
 const { weekStart, nextReset } = require('./week');
 
 const app = express();
+// Vercel sits behind a trusted proxy; use its forwarded client IP for per-instance throttling.
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '200kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -132,7 +134,7 @@ app.post('/api/logout', (req, res) => {
 
 // ---------- admin ----------
 // Open sign-up: any parent or teacher creates their own private group.
-app.post('/api/admin/signup', async (req, res) => {
+app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5), async (req, res) => {
   const name = String(req.body?.groupName || '').trim().slice(0, 40);
   const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
   const password = String(req.body?.password || '');
@@ -148,7 +150,7 @@ app.post('/api/admin/signup', async (req, res) => {
   res.status(201).json({ ok: true, groupName: group.name });
 });
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', auth.rateLimit('admin-login'), (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (email) {
     const g = db.groups.find((x) => x.email === email);
@@ -223,7 +225,8 @@ app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 
 app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) => {
   const m = findGroupMember(req);
-  if (!m?.otari?.keyId) return res.status(400).json({ error: 'This member has no own Otari key to rotate' });
+  if (!m) return res.status(404).json({ error: 'No such member' });
+  if (!m.otari?.keyId) return res.status(400).json({ error: 'This member has no own Otari key to rotate' });
   try {
     Object.assign(m.otari, await otari.rotateKey(m.otari.keyId));
   } catch (e) {
@@ -243,7 +246,7 @@ app.delete('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 });
 
 // ---------- member ----------
-app.post('/api/member/login', (req, res) => {
+app.post('/api/member/login', auth.rateLimit('member-login', 60), (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const m = db.members.find((x) => x.code === code);
   if (!m) return res.status(401).json({ error: 'That code did not match anyone' });
