@@ -85,6 +85,16 @@ async function releaseWriteLock(lock) {
   localLocks.delete('write');
 }
 
+// Atomic shared fixed-window counter for authentication throttling.
+async function incrementRateLimit(key, windowMs) {
+  if (backend !== 'redis') throw new Error('Shared rate limits require Redis');
+  const redisKey = `${REDIS_KEY}:rate-limit:${key}`;
+  const script = "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return {n, redis.call('PTTL', KEYS[1])}";
+  const result = await redis(['EVAL', script, 1, redisKey, windowMs]);
+  if (!Array.isArray(result) || result.length < 2) throw new Error('Redis returned an invalid rate-limit result');
+  return { count: Number(result[0]), ttlMs: Number(result[1]) };
+}
+
 async function save() {
   // Keep the ledger bounded: only the last 8 weeks matter for weekly caps.
   const cutoff = Date.now() - 56 * 24 * 3600 * 1000;
@@ -113,4 +123,4 @@ function newJoinCode() {
   return code;
 }
 
-module.exports = { db, load, save, newId, newJoinCode, acquireWriteLock, releaseWriteLock, DATA_FILE, backend };
+module.exports = { db, load, save, newId, newJoinCode, acquireWriteLock, releaseWriteLock, incrementRateLimit, DATA_FILE, backend };
