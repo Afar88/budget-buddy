@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
 const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'chat'];
 let pollTimer = null;
 let me = null;
+let activeView = 'landing';
 
 function closeMenu() {
   $('menu-panel').classList.add('hidden');
@@ -11,6 +12,7 @@ function closeMenu() {
 }
 
 function show(name) {
+  activeView = name;
   views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
   const signedIn = name === 'admin' || name === 'chat';
   $('account-menu').classList.toggle('hidden', !signedIn);
@@ -37,18 +39,19 @@ document.addEventListener('keydown', (e) => {
 });
 $('menu-primary').addEventListener('click', () => {
   closeMenu();
-  if (me) $('me-bar').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (activeView === 'chat') $('me-bar').scrollIntoView({ behavior: 'smooth', block: 'center' });
   else $('admin-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 $('menu-secondary').addEventListener('click', async () => {
   closeMenu();
-  if (me) {
+  if (activeView === 'chat') {
     localStorage.removeItem(historyKey());
     renderChat();
   } else {
-    $('menu-secondary').disabled = true;
-    await refreshMembers();
-    $('menu-secondary').disabled = false;
+    const button = $('menu-secondary');
+    button.disabled = true;
+    try { await refreshMembers(); }
+    finally { button.disabled = false; }
   }
 });
 $('menu-logout').addEventListener('click', async () => {
