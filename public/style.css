@@ -151,3 +151,22 @@ form[aria-busy="true"] button[type="submit"]{cursor:wait}
 input:invalid:not(:placeholder-shown){border-color:#d58b83}
 .error:empty{min-height:.35em}
 @media(max-width:520px){#view-admin-login,#view-admin-signup{margin:18px auto}.auth-back{width:100%;margin-top:4px}.door .row{align-items:stretch}.door .row button{flex:1}}
+
+
+/* Make signup, sign-in and account recovery paths obvious. */
+.auth-entry-actions{margin-top:4px}
+.auth-entry-actions button{flex:1}
+.auth-entry-note{margin:2px 0 0;color:var(--muted);font-size:.82rem;line-height:1.55}
+.auth-intro{margin:0 0 16px;line-height:1.6}
+.auth-help-row,.auth-switch{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#f8fbf9}
+.auth-help-row button,.auth-switch button{font-size:.88rem}
+#view-admin-login .auth-back{margin-top:12px}
+#view-admin-login .stack{gap:12px}
+#view-admin-login #forgot-open{padding:4px 0}
+#view-admin-signup .auth-switch{justify-content:flex-start}
+#view-admin-signup .auth-switch button{padding-left:0}
+@media(max-width:520px){
+  .auth-entry-actions{flex-direction:column}
+  .auth-entry-actions button{width:100%}
+  .auth-help-row{align-items:flex-start;flex-direction:column}
+}
