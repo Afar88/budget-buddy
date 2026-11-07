@@ -79,6 +79,7 @@ async function publicMember(m, { forAdmin = false } = {}) {
     name: m.name,
     weeklyCapUsd: m.weeklyCapUsd,
     paused: !!m.paused,
+    aiStatus: m.paused ? 'paused' : otari.mode === 'off' ? 'not_configured' : 'ready',
     spentUsd: u.spentUsd,
     requests: u.requests,
     resetsAt: u.resetsAt,
