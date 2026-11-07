@@ -46,10 +46,10 @@
           <h2>Teen / student sign-up</h2>
           <p class="muted">Join your family or class with the code your parent or teacher gave you. No email or password needed.</p>
           <form id="form-code" class="row">
-            <input id="code" placeholder="e.g. K7MPQ2" maxlength="6" autocomplete="off" inputmode="text" required />
+            <input id="code" placeholder="Enter your 6-character code" maxlength="6" minlength="6" pattern="[A-HJ-KM-NP-Z2-9]{6}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-describedby="code-error" required />
             <button type="submit">Join my group</button>
           </form>
-          <p id="code-error" class="error"></p>
+          <p id="code-error" class="error" role="alert" aria-live="polite"></p>
         </div>
         <div class="card door">
           <div class="door-icon">👩‍🏫</div>
@@ -72,11 +72,11 @@
     <section id="view-admin-login" class="view card narrow hidden">
       <h1>Parent / teacher sign in</h1>
       <form id="form-admin" class="stack">
-        <input id="admin-email" type="email" placeholder="Email" autocomplete="username" />
+        <input id="admin-email" type="email" placeholder="Email" autocomplete="username" inputmode="email" autocapitalize="none" />
         <input id="admin-pass" type="password" placeholder="Password" autocomplete="current-password" required />
         <button type="submit">Sign in</button>
       </form>
-      <p id="admin-error" class="error"></p>
+      <p id="admin-error" class="error" role="alert" aria-live="polite"></p>
       <button id="login-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">New here? <button id="to-signup" class="link small">Create a free account</button> for your family or class.</p>
     </section>
@@ -86,11 +86,11 @@
       <p class="muted">Start with your family, classroom, club or group. You can add members and set their weekly budgets after signing up.</p>
       <form id="form-signup" class="stack">
         <input id="su-group" placeholder="Group name (family, class, club…)" maxlength="40" required />
-        <input id="su-email" type="email" placeholder="Your email" autocomplete="username" required />
+        <input id="su-email" type="email" placeholder="Your email" autocomplete="email" inputmode="email" autocapitalize="none" required />
         <input id="su-pass" type="password" placeholder="Password (8+ characters)" minlength="8" autocomplete="new-password" required />
         <button type="submit">Create account</button>
       </form>
-      <p id="signup-error" class="error"></p>
+      <p id="signup-error" class="error" role="alert" aria-live="polite"></p>
       <button id="signup-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">Already have one? <button id="to-login" class="link small">Sign in</button></p>
     </section>
@@ -108,7 +108,7 @@
           <button type="submit">Add member</button>
         </form>
         <p id="limits" class="muted small hidden"></p>
-        <p id="member-error" class="error"></p>
+        <p id="member-error" class="error" role="alert" aria-live="polite"></p>
       </div>
       <div class="card">
         <div class="spread">
