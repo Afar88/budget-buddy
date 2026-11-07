@@ -115,12 +115,26 @@
           <span class="muted small"><span class="dot"></span> Live · resets Monday 00:00 UTC</span>
         </div>
         <div id="totals" class="totals"></div>
+        <p class="muted small">Your children’s profiles and controls are in Group dashboard.</p>
+        <button id="open-group" type="button" class="ghost">View group dashboard</button>
+      </div>
+    </section>
+
+    <!-- Group dashboard: child profiles and management -->
+    <section id="view-admin-group" class="view hidden">
+      <div class="card">
+        <div class="spread">
+          <div><p class="eyebrow">YOUR GROUP</p><h1 id="group-title">Group dashboard</h1></div>
+          <button id="back-dashboard" type="button" class="ghost">Back</button>
+        </div>
+        <p class="muted small">Manage each child’s join code, weekly budget, AI access and account status here.</p>
         <table class="members">
-          <thead><tr><th>Member</th><th>Join code</th><th>Spent vs cap</th><th>Requests</th><th>Otari key</th><th></th></tr></thead>
+          <thead><tr><th>Child</th><th>Join code</th><th>Spent vs cap</th><th>Requests</th><th>AI key</th><th>Controls</th></tr></thead>
           <tbody id="members"></tbody>
         </table>
-        <p id="empty" class="empty hidden">No members yet. Add your first one above, then share their join code.</p>
+        <p id="empty" class="empty hidden">No children yet. Add your first child from the dashboard.</p>
       </div>
+    </section>
     </section>
 
     <!-- Member chat -->
@@ -129,6 +143,7 @@
         <div class="spread">
           <h1 id="hello">Hi!</h1>
         </div>
+        <div id="member-status" class="member-status hidden" role="status"></div>
         <div id="chat" class="chat"></div>
         <div id="chips" class="chips"></div>
         <form id="form-chat" class="row">
