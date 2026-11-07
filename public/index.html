@@ -20,6 +20,11 @@
         </button>
         <div id="menu-panel" class="menu-panel hidden" role="menu" aria-label="Account menu">
           <p id="menu-heading" class="menu-heading">Menu</p>
+          <div id="menu-budget" class="menu-budget hidden" aria-label="Weekly budget">
+            <p class="menu-budget-title">Weekly budget</p>
+            <div class="meter"><div id="me-bar"></div></div>
+            <span id="me-left" class="small"></span>
+          </div>
           <button id="menu-primary" type="button" role="menuitem">Dashboard</button>
           <button id="menu-secondary" type="button" role="menuitem">Refresh</button>
           <button id="menu-logout" type="button" role="menuitem" class="menu-signout">Sign out</button>
@@ -123,10 +128,6 @@
       <div class="card">
         <div class="spread">
           <h1 id="hello">Hi!</h1>
-          <div class="meter-wrap">
-            <div class="meter"><div id="me-bar"></div></div>
-            <span id="me-left" class="small"></span>
-          </div>
         </div>
         <div id="chat" class="chat"></div>
         <div id="chips" class="chips"></div>
