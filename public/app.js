@@ -16,7 +16,6 @@ function show(name) {
   views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
   const signedIn = name === 'admin' || name === 'admin-group' || name === 'chat';
   $('account-menu').classList.toggle('hidden', !signedIn);
-  $('nav-admin').classList.toggle('hidden', signedIn);
   $('menu-heading').textContent = name === 'admin' || name === 'admin-group' ? 'Parent / teacher' : 'Teen account';
   $('menu-budget').classList.toggle('hidden', name !== 'chat');
   $('menu-primary').classList.toggle('hidden', name === 'chat');
@@ -110,15 +109,6 @@ $('form-code').addEventListener('submit', async (e) => {
   }
 });
 
-$('nav-admin').addEventListener('click', async () => {
-  try {
-    await api('/api/admin/members');
-    openAdmin();
-  } catch {
-    show('admin-login');
-  }
-});
-
 // ---------- admin ----------
 $('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -133,6 +123,8 @@ $('form-admin').addEventListener('submit', async (e) => {
 });
 
 $('to-signup').addEventListener('click', () => show('admin-signup'));
+$('login-back').addEventListener('click', () => show('landing'));
+$('signup-back').addEventListener('click', () => show('landing'));
 $('cta-signup').addEventListener('click', () => show('admin-signup'));
 $('cta-login').addEventListener('click', () => show('admin-login'));
 $('to-login').addEventListener('click', () => show('admin-login'));
