@@ -286,7 +286,7 @@ test('Sendliberty domain-free Gmail relay sends verification and password reset 
   const mail = await mockEmail();
   const app = await boot({
     OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
-    SENDLIBERTY_API_KEY: 'email-test-key', SENDLIBERTY_API_URL: mail.url + '/api/send',
+    SENDLIBERTY_API_KEY: 'email-test-key', SENDLIBERTY_FROM: 'budgetbuddy.test@gmail.com', SENDLIBERTY_API_URL: mail.url + '/api/send',
     APP_BASE_URL: 'https://budget-buddy.test',
   });
   try {
@@ -296,6 +296,7 @@ test('Sendliberty domain-free Gmail relay sends verification and password reset 
     assert.equal(signup.status, 201);
     assert.equal(mail.messages.length, 1);
     assert.equal(mail.messages[0].to, 'parent@example.com');
+    assert.equal(mail.messages[0].from, 'budgetbuddy.test@gmail.com');
     assert.match(mail.messages[0].subject, /Verify your Budget Buddy email/);
     const verifyToken = new URL(mail.messages[0].text.match(/https?:\/\/\S+/)[0]).searchParams.get('verify');
     assert.ok(verifyToken);
