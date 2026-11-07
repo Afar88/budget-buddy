@@ -102,7 +102,7 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 ## Security and known limitations
 
 - Parent/teacher member-management routes verify group ownership. Requests to edit, rotate or delete another group's member are rejected.
-- Admin login, account creation and member join-code login have a baseline limit of 10 attempts per IP per 15 minutes **per running server instance**. This in-memory limiter is not shared between Vercel instances. Configure Vercel Firewall rate limits for these endpoints before exposing the app to substantial public traffic.
+- Admin login is limited to 10 attempts per IP per 15 minutes, group signup to 5, and member join-code login to 60 to avoid blocking a whole classroom behind one shared school network. These are per-running-server-instance limits. This in-memory limiter is not shared between Vercel instances. Configure Vercel Firewall rate limits for these endpoints before exposing the app to substantial public traffic.
 - Treat join codes as credentials. Share them privately. The current app does not yet offer self-service join-code rotation.
 - Keep Redis connected on Vercel and use a strong `SESSION_SECRET`. Never commit environment files or send private Otari keys to the browser.
 - The Redis adapter currently stores app state as one JSON document. Concurrent writes across serverless instances can overwrite one another. This is suitable for a low-volume demo, not a high-concurrency deployment. Move groups, members and usage records to transactional Postgres (or implement and test an atomic Redis data model) before scaling.
