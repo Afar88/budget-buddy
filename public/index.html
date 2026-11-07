@@ -55,10 +55,11 @@
           <div class="door-icon">👩‍🏫</div>
           <h2>Parent / teacher sign-up</h2>
           <p class="muted">Create your account, set up a family or class, and invite teens with their own join codes.</p>
-          <div class="row wrap">
+          <div class="row wrap auth-entry-actions">
             <button id="cta-signup" type="button">Create free account</button>
-            <button id="cta-login" type="button" class="ghost lg">Sign in</button>
+            <button id="cta-login" type="button" class="ghost lg">I already have an account</button>
           </div>
+          <p class="auth-entry-note">Already registered? Sign in to manage your group. New here? Create an account and verify your email to get started.</p>
         </div>
       </div>
       <ol class="steps">
@@ -70,14 +71,19 @@
 
     <!-- Admin login / sign-up -->
     <section id="view-admin-login" class="view card narrow hidden">
-      <h1>Parent / teacher sign in</h1>
+      <p class="eyebrow">PARENT / TEACHER ACCOUNT</p>
+      <h1>Welcome back</h1>
+      <p class="muted auth-intro">Sign in to manage your family or classroom. If you haven't verified your email yet, we'll help you resend the link.</p>
       <form id="form-admin" class="stack">
         <input id="admin-email" type="email" placeholder="Email" autocomplete="username" inputmode="email" autocapitalize="none" />
         <input id="admin-pass" type="password" placeholder="Password" autocomplete="current-password" required />
         <button type="submit">Sign in</button>
       </form>
       <p id="admin-error" class="error" role="alert" aria-live="polite"></p>
-      <button id="forgot-open" type="button" class="link small">Forgot password?</button>
+      <div class="auth-help-row">
+        <span class="muted small">Can't access your account?</span>
+        <button id="forgot-open" type="button" class="link small">Forgot password? Reset it</button>
+      </div>
       <p id="auth-notice" class="muted small" role="status" aria-live="polite"></p>
       <button id="login-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">New here? <button id="to-signup" class="link small">Create a free account</button> for your family or class.</p>
@@ -116,8 +122,9 @@
     </section>
 
     <section id="view-admin-signup" class="view card narrow hidden">
+      <p class="eyebrow">GET STARTED</p>
       <h1>Create your free account</h1>
-      <p class="muted">Start with your family, classroom, club or group. You can add members and set their weekly budgets after signing up.</p>
+      <p class="muted">Set up your family, classroom, club or group. After signup, we'll email you a verification link before you can sign in.</p>
       <form id="form-signup" class="stack">
         <input id="su-group" placeholder="Group name (family, class, club…)" maxlength="40" required />
         <input id="su-email" type="email" placeholder="Your email" autocomplete="email" inputmode="email" autocapitalize="none" required />
@@ -126,7 +133,10 @@
       </form>
       <p id="signup-error" class="error" role="alert" aria-live="polite"></p>
       <button id="signup-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
-      <p class="muted small">Already have one? <button id="to-login" class="link small">Sign in</button></p>
+      <div class="auth-switch">
+        <span class="muted small">Already registered?</span>
+        <button id="to-login" class="link small">Go to sign in</button>
+      </div>
     </section>
 
     <!-- Admin dashboard -->
