@@ -20,49 +20,50 @@ The live demo uses hosted Otari mode and a shared, capped Otari key. New self-se
 
 ## How to Use Budget Buddy
 
-Budget Buddy separates duties between grown-ups (who manage accounts, budgets, and keys) and learners (who access safe AI chat using friction-free join codes).
+Budget Buddy has two sides: a **grown-up dashboard** for parents and teachers, and a **member chat** for children or students. A grown-up creates the group and controls each member's weekly AI budget. Members join with a short code—no personal email or password is needed for member access.
 
-### 1. For Parents and Teachers (Grown-Up Dashboard)
+### A. Parents and teachers: set up your group
 
-* **Create & Verify Account**:
-  1. Click **Create free account** on the home screen.
-  2. Enter a group name (e.g., *The Smiths* or *Class 5B*), your email, and a secure password (8+ characters).
-  3. Check your email inbox and click **Verify my email** to activate your account.
-  4. *(Tip: If you ever lose your password, use **Forgot password?** to receive a single-use 45-minute reset link).*
+1. Open the [Budget Buddy app](https://budget-buddy-one-mu.vercel.app).
+2. Select **Create free account**.
+3. Enter your family or classroom name, your email address, and a password with at least 8 characters.
+4. Open the verification email and select **Verify my email**. You must verify a new account before signing in. If it is missing, check Spam/Junk and Promotions, then return to the app and use the resend-verification option.
+5. Sign in to open your grown-up dashboard.
 
-* **Add Members & Assign Budgets**:
-  1. Once logged into your dashboard, enter each child or student’s name.
-  2. Set their weekly AI spending cap in dollars (e.g., `$0.50` or `$1.00`).
-  3. Click **Add member**. Budget Buddy creates a unique, kid-friendly 6-character join code (e.g., `K9M2PX`, using characters with no look-alikes like `0/O` or `1/I/L`).
+### B. Add members and set weekly limits
 
-* **Share the Join Code**:
-  * Privately give each learner their 6-character join code. They do not need an email, phone number, or password to log in.
+1. In the dashboard, find the member section and enter the child's or student's name.
+2. Set a weekly spending limit in USD. For example, enter `0.50` for a $0.50 weekly cap.
+3. Select **Add member**. Budget Buddy creates a unique six-character join code.
+4. Copy the code and share it privately with that member. Treat the code like a password: anyone who has it can access that member's chat.
+5. Repeat for each person you want to add.
 
-* **Live Monitoring & Safety Controls**:
-  * **Real-Time Usage**: Monitor exact spent amounts, message counts, and live cost-per-chat.
-  * **Automatic Refills**: Member budgets automatically reset every **Monday at 00:00 UTC**.
-  * **Pause Access**: Toggle a member to "Paused" to temporarily disable chat without deleting their profile.
-  * **Adjust Limits**: Change weekly spending caps up or down on the fly.
-  * **Remove Member**: Delete a profile to revoke access and clean up associated Otari virtual keys.
+### C. Members: join and start chatting
 
----
+1. Open the Budget Buddy app on a phone, tablet, Chromebook, or computer.
+2. Choose the member sign-in/join option.
+3. Enter the six-character code shared by the parent or teacher.
+4. Select **Start chatting** and ask the AI helper a question.
 
-### 2. For Children and Students (Kid-Friendly AI Chat)
+Members do not need to create a separate account or provide an email address. They can ask about subjects such as science, history, language, and coding. The helper is designed to explain ideas step by step.
 
-* **Instant Sign-In**:
-  1. Open Budget Buddy on any phone, tablet, Chromebook, or browser.
-  2. Enter your **6-character join code** and tap **Start chatting**. No personal details or passwords are requested.
+### D. Monitor and manage usage
 
-* **Engaging, Safe AI Helper**:
-  * Ask questions about science, history, coding, or language.
-  * Budget Buddy explains concepts step-by-step to help you learn, rather than simply handing over homework answers.
-  * Tap any of the starter idea chips for inspiration.
+From the grown-up dashboard, parents and teachers can:
 
-* **Weekly Budget Transparency**:
-  * The top status bar shows your remaining weekly budget and exact costs per prompt.
-  * If your cap is reached, Budget Buddy kindly informs you that your balance refills on Monday morning.
+- Review member usage, message counts, and spending.
+- Change a member's weekly spending cap.
+- Pause or resume a member's chat access.
+- Remove a member when access is no longer needed.
 
----
+The weekly budget resets every **Monday at 00:00 UTC**. Members can see their remaining weekly budget in the chat interface. If a member reaches their limit, they must wait for the next reset or ask the grown-up to adjust the cap.
+
+### E. Sign-in help
+
+- **Didn't receive a verification email?** Check Spam/Junk and Promotions. Return to the app and request a new verification email.
+- **Forgot your grown-up password?** Use **Forgot password?** on the sign-in screen and follow the password-reset link sent to your email.
+- **A member's code is not working?** Ask the parent or teacher to confirm the code and check that the member has not been paused or removed.
+- **Keep codes private.** Do not post join codes publicly or share them with people who should not have access.
 
 ## How budgeting works
 
