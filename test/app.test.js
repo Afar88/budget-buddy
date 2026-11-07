@@ -258,7 +258,13 @@ test('Redis auth throttling is shared across separate Vercel instances', async (
 test('Redis write lock prevents concurrent Vercel instances from overwriting shared state', async () => {
   const o = await mock.start();
   const r = await mockRedis();
-  const env = { OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key', KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token' };
+  const mail = await mockEmail();
+  const env = {
+    OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
+    KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token',
+    RESEND_API_KEY: 'email-test-key', RESEND_API_URL: mail.url + '/emails',
+    EMAIL_FROM: 'Budget Buddy <hello@example.test>', APP_BASE_URL: 'https://budget-buddy.test',
+  };
   const a = await boot(env);
   const b = await boot(env);
   try {
@@ -270,6 +276,6 @@ test('Redis write lock prevents concurrent Vercel instances from overwriting sha
     assert.ok(results.find((x) => x.status === 503).retryAfter, 'busy response includes Retry-After');
     assert.ok(r.data.get('budget-buddy:db'), 'successful writer persisted shared state');
   } finally {
-    a.stop(); b.stop(); o.srv.close(); r.srv.close();
+    a.stop(); b.stop(); o.srv.close(); r.srv.close(); mail.srv.close();
   }
 });
