@@ -297,14 +297,14 @@ test('Sendliberty domain-free Gmail relay sends verification and password reset 
     assert.equal(mail.messages.length, 1);
     assert.equal(mail.messages[0].to, 'parent@example.com');
     assert.match(mail.messages[0].subject, /Verify your Budget Buddy email/);
-    const verifyToken = new URL(mail.messages[0].text.match(/https?:\\/\\/\\S+/)[0]).searchParams.get('verify');
+    const verifyToken = new URL(mail.messages[0].text.match(/https?:\/\/\S+/)[0]).searchParams.get('verify');
     assert.ok(verifyToken);
     assert.equal((await app.call('verify', 'POST', '/api/admin/verify-email', { token: verifyToken })).status, 200);
 
     await app.call('forgot', 'POST', '/api/admin/forgot-password', { email: 'parent@example.com' });
     assert.equal(mail.messages.length, 2);
     assert.match(mail.messages[1].subject, /Reset your Budget Buddy password/);
-    assert.equal(new URL(mail.messages[1].text.match(/https?:\\/\\/\\S+/)[0]).searchParams.has('reset'), true);
+    assert.equal(new URL(mail.messages[1].text.match(/https?:\/\/\S+/)[0]).searchParams.has('reset'), true);
   } finally {
     app.stop(); o.srv.close(); mail.srv.close();
   }
