@@ -12,7 +12,7 @@ Built for **[Developers Wilding: Online](https://otari.ai/devs-wilding)**, Mozil
 
 ## ⏱️ How to test in 2 minutes
 
-- **Watch:** the 3:30 narrated demo, [`demo/budget-buddy-demo.mp4`](https://drive.google.com/file/d/1DRKWM4ntWajHN1JIJxdJIgDlJovaWlN6/view).
+- **Watch:** demo video (my own screen recording) coming soon.
 - **Grown-up side, live:** open https://budget-buddy-one-mu.vercel.app → **Create free account** (any family or class name, any email, 8+ character password). You get your own private dashboard: add a member with a weekly cap and copy their join code.
 - **Member side, live:** in another browser or a private window, enter that join code (or the demo code **`NM72XV`**, Ada, 14, $0.50/week) and chat. Each answer shows its real Otari cost and the budget left this week, and the grown-up dashboard updates live.
 - Open sign-up runs on one shared, capped Otari key, so new groups are limited to 10 members and a $1.00 weekly cap each (`SIGNUP_MAX_MEMBERS`, `SIGNUP_MAX_CAP_USD`).
@@ -55,9 +55,7 @@ The dashboard badge shows which mode you're in.
 
 ## Demo
 
-**Video (3:30, 1080p, narrated):** [`demo/budget-buddy-demo.mp4`](https://drive.google.com/file/d/1DRKWM4ntWajHN1JIJxdJIgDlJovaWlN6/view), narrated walkthrough of the live app: the shared-key problem, a grown-up adding members with weekly caps, a kid joining by code and chatting with the real Otari cost under every answer, live spend on the dashboard, pausing a member, and how it is built on Otari. Script and shot list: [`demo/SCRIPT.md`](demo/SCRIPT.md).
-
-**Otari feedback video (4:18, narrated):** [`demo/otari-feedback.mp4`](https://drive.google.com/file/d/1-M3DlX3wJ3r82hMs4wMqESQi7uX5ZE1K/view): what I built and the Otari features used, what worked well, what didn't (hosted tenant keys can't manage keys/users/budgets; masked key confusion), and what I'd change (scoped admin keys on hosted, usage API with a normal key, budget alerts). Script: [`demo/FEEDBACK_SCRIPT.json`](demo/FEEDBACK_SCRIPT.json).
+**Video:** a new screen recording narrated by me (Avie) is on the way; the earlier AI-narrated videos were removed to follow the hackathon's no-AI-video rule. Script: [`demo/SCRIPT.md`](demo/SCRIPT.md). Otari feedback was submitted in writing.
 
 | | |
 | --- | --- |
@@ -196,4 +194,4 @@ MIT
 
 ## Changelog
 
-- **2026-11-07:** Open sign-up. Any parent or teacher creates an account (email + password, scrypt-hashed) and gets a private group: members, join codes and spend are only visible to that group. Demo-size limits on shared keys. New landing page with separate doors for kids and grown-ups, copy-to-clipboard join codes, suggestion chips in chat, and a mobile-first redesign. Test added for group privacy and limits.
+- **2026-11-07:** Open sign-up. Any parent or teacher creates an account (email + password, scrypt-hashed) and gets a private group: members, join codes and spend are only visible to that group. Demo-size limits on shared keys. New landing page with separate doors for kids and grown-ups, copy-to-clipboard join codes, suggestion chips in chat, and a mobile-first redesign. Test added for group privacy and limits. Removed the AI-narrated demo and feedback videos; a self-recorded demo replaces them.
