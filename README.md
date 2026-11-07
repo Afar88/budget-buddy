@@ -23,7 +23,7 @@ The live demo uses hosted Otari mode and a shared, capped Otari key. New self-se
 Budget Buddy supports two Otari configurations:
 
 - **Managed mode** (`OTARI_ADMIN_KEY` configured): Budget Buddy provisions a separate Otari virtual key, user and calendar-week budget for each member. Otari enforces that member's cap before dispatching a model request. Adults can change the cap, pause the Otari user, rotate its key and revoke its resources when the member is removed.
-- **Hosted mode** (only `OTARI_API_KEY` configured): members share the app's Otari key. Requests are tagged with the member and group, and Budget Buddy checks the member's weekly total using the cost returned by Otari. This is convenient for the hosted otari.ai service, but the app-side check is not an atomic reservation; simultaneous requests can race and exceed a small remaining balance. Use managed mode when strict per-member enforcement is required.
+- **Hosted mode** (only `OTARI_API_KEY` configured): members share the app's Otari key. Requests are tagged with the member and group, and Budget Buddy checks the member's weekly total using the cost returned by Otari. On Redis-backed deployments, a distributed write lock serializes state-changing requests—including chat—so two requests cannot both pass the same stale budget check. Competing writes receive HTTP 503 with `Retry-After` and should be retried. Managed Otari mode remains preferable when strict per-member enforcement is required.
 
 The default model is `mistralai/mistral-small-3`. Change it with `OTARI_MODEL` to a model available to your Otari account.
 
@@ -105,8 +105,8 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 - Admin login is limited to 10 attempts per IP per 15 minutes, group signup to 5, and member join-code login to 60 to avoid blocking a whole classroom behind one shared school network. These are per-running-server-instance limits. This in-memory limiter is not shared between Vercel instances. Configure Vercel Firewall rate limits for these endpoints before exposing the app to substantial public traffic.
 - Treat join codes as credentials. Share them privately. The current app does not yet offer self-service join-code rotation.
 - Keep Redis connected on Vercel and use a strong `SESSION_SECRET`. Never commit environment files or send private Otari keys to the browser.
-- The Redis adapter currently stores app state as one JSON document. Concurrent writes across serverless instances can overwrite one another. This is suitable for a low-volume demo, not a high-concurrency deployment. Move groups, members and usage records to transactional Postgres (or implement and test an atomic Redis data model) before scaling.
-- Hosted-mode budget checks are not atomic reservations. Two simultaneous requests can both pass a pre-request check while little budget remains. Managed Otari mode is recommended where strict budget enforcement matters.
+- The Redis adapter stores app state as one JSON document, but state-changing API requests now acquire a distributed Redis lease before loading and saving it. This prevents concurrent Vercel instances from overwriting each other's snapshots. The lease lasts 120 seconds; keep Vercel function execution limits below that duration. If another writer holds the lease, the request fails closed with HTTP 503 and `Retry-After` rather than writing stale state. This is a safe low-volume workaround, not a substitute for a normalized transactional database at higher scale.
+- Hosted-mode budget checks and ledger writes run under the same distributed write lock, preventing overlapping chats from both spending the same remaining balance. The trade-off is that writes and chat requests are serialized across the whole app, so throughput is intentionally limited. A future normalized data model can replace this coarse lock with per-member atomic reservations.
 - Email verification and password recovery are not implemented yet. Do not rely on the current signup flow as a full identity-verification system.
 
 ## Tests
@@ -115,7 +115,7 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 npm test
 ```
 
-The Node test suite uses a mock Otari API and covers managed mode, hosted mode, weekly cap behavior, member management, Redis persistence across fresh instances, group isolation and authentication throttling. It does not spend Otari credits.
+The Node test suite uses a mock Otari API and covers managed mode, hosted mode, weekly cap behavior, member management, Redis persistence across fresh instances, distributed write-lock contention across separate app instances, group isolation and authentication throttling. It does not spend Otari credits.
 
 ## Project structure
 
@@ -138,5 +138,5 @@ test/               Integration tests and mock Otari service
 
 ## Changelog
 
-- **2026-11-07:** Added baseline authentication throttling for admin login, group signup and member join-code attempts; added throttling tests; refreshed the README to match the current signup flow and document production security and storage limitations.
+- **2026-11-07:** Added a distributed Redis write lock for state-changing requests, fail-closed retry responses, and cross-instance contention coverage. Hosted chat budget checks and ledger writes now run within the same lock; README documents the throughput trade-off.
 - **2026-11-07:** Added private group signup, group-scoped member management, hosted/managed Otari modes and the mobile-first onboarding refresh.

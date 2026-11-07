@@ -17,13 +17,35 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const db = store.db; // refreshed in place by store.load() before every API request
 
-// Load the latest state before each API call (Redis on Vercel, JSON file locally).
+// Serialize every state-changing request before loading the shared JSON document.
+// This prevents two Vercel instances from reading the same snapshot and overwriting each
+// other's writes. Chat requests are included because they append to the shared usage ledger.
+// Login/logout endpoints do not mutate persisted state and remain concurrent.
 app.use('/api', async (req, res, next) => {
+  let lock = null;
+  const mutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) &&
+    !['/admin/login', '/member/login', '/logout'].includes(req.path);
   try {
+    if (mutating) {
+      lock = await store.acquireWriteLock();
+      if (!lock) {
+        res.setHeader('Retry-After', '2');
+        return res.status(503).json({ error: 'Another update is being saved. Please try again in a moment.' });
+      }
+      let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        store.releaseWriteLock(lock).catch((e) => console.error('[store] lock release failed:', e.message));
+      };
+      res.once('finish', release);
+      res.once('close', release);
+    }
     await store.load();
     if (process.env.GROUP_NAME) db.settings.groupName = process.env.GROUP_NAME;
     next();
   } catch (e) {
+    if (lock) await store.releaseWriteLock(lock).catch(() => {});
     console.error('[store]', e.message);
     res.status(503).json({ error: 'Storage is not reachable right now. Try again in a moment.' });
   }

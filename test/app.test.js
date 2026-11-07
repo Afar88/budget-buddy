@@ -95,12 +95,25 @@ function mockRedis() {
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
       if (req.headers.authorization !== 'Bearer redis-token') { res.writeHead(401); return res.end('{"error":"unauthorized"}'); }
-      const [cmd, key, value] = JSON.parse(raw);
+      const [cmd, key, value, ...options] = JSON.parse(raw);
       let result = null;
       if (cmd === 'GET') result = data.has(key) ? data.get(key) : null;
-      else if (cmd === 'SET') { data.set(key, value); result = 'OK'; }
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ result }));
+      else if (cmd === 'SET') {
+        if (options.includes('NX') && data.has(key)) result = null;
+        else { data.set(key, value); result = 'OK'; }
+      } else if (cmd === 'EVAL') {
+        const lockKey = options[0];
+        const token = options[1];
+        if (data.get(lockKey) === token) { data.delete(lockKey); result = 1; }
+        else result = 0;
+      }
+      const respond = () => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ result }));
+      };
+      // Keep lock acquisition in flight briefly so integration tests can exercise contention.
+      if (cmd === 'SET' && key.endsWith(':write-lock') && result === 'OK') setTimeout(respond, 60);
+      else respond();
     });
   });
   return new Promise((r) => srv.listen(0, '127.0.0.1', () => r({ srv, data, url: `http://127.0.0.1:${srv.address().port}` })));
@@ -184,4 +197,23 @@ test('authentication endpoints throttle repeated attempts', async () => {
     }
     assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 429);
   } finally { app.stop(); o.srv.close(); }
+});
+
+test('Redis write lock prevents concurrent Vercel instances from overwriting shared state', async () => {
+  const o = await mock.start();
+  const r = await mockRedis();
+  const env = { OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key', KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token' };
+  const a = await boot(env);
+  const b = await boot(env);
+  try {
+    const results = await Promise.all([
+      a.call('signup-a', 'POST', '/api/admin/signup', { groupName: 'Group A', email: 'a@example.com', password: 'password-a' }),
+      b.call('signup-b', 'POST', '/api/admin/signup', { groupName: 'Group B', email: 'b@example.com', password: 'password-b' }),
+    ]);
+    assert.deepEqual(results.map((x) => x.status).sort(), [201, 503], 'one writer succeeds while the competing writer is asked to retry');
+    assert.ok(results.find((x) => x.status === 503).retryAfter, 'busy response includes Retry-After');
+    assert.ok(r.data.get('budget-buddy:db'), 'successful writer persisted shared state');
+  } finally {
+    a.stop(); b.stop(); o.srv.close(); r.srv.close();
+  }
 });
