@@ -93,6 +93,22 @@ async function publicMember(m, { forAdmin = false } = {}) {
 }
 
 const findMember = (id) => db.members.find((m) => m.id === id);
+// Members created before sign-up existed belong to the built-in demo group.
+const groupOf = (m) => m.groupId || 'demo';
+const findGroupMember = (req) => {
+  const m = findMember(req.params.id);
+  return m && groupOf(m) === req.groupId ? m : null;
+};
+function groupName(groupId) {
+  if (groupId === 'demo') return db.settings.groupName;
+  return db.groups.find((g) => g.id === groupId)?.name || 'Your group';
+}
+
+// Limits for self-signed-up groups, so open sign-up cannot drain a shared Otari key.
+const SIGNUP_MAX_CAP = Number(process.env.SIGNUP_MAX_CAP_USD || 1);
+const SIGNUP_MAX_MEMBERS = Number(process.env.SIGNUP_MAX_MEMBERS || 10);
+const MAX_GROUPS = Number(process.env.MAX_GROUPS || 500);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const modeLabel = {
   managed: 'Otari: own key + budget per member',
@@ -114,16 +130,42 @@ app.post('/api/logout', (req, res) => {
 });
 
 // ---------- admin ----------
+// Open sign-up: any parent or teacher creates their own private group.
+app.post('/api/admin/signup', async (req, res) => {
+  const name = String(req.body?.groupName || '').trim().slice(0, 40);
+  const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
+  const password = String(req.body?.password || '');
+  if (!name) return res.status(400).json({ error: 'Give your family or class a name' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (db.groups.some((g) => g.email === email)) return res.status(409).json({ error: 'That email already has an account. Sign in instead.' });
+  if (db.groups.length >= MAX_GROUPS) return res.status(503).json({ error: 'Sign-ups are full for this demo right now' });
+  const group = { id: store.newId(), name, email, pw: auth.hashPassword(password), createdAt: Date.now() };
+  db.groups.push(group);
+  await store.save();
+  auth.setCookie(res, 'bb_admin', auth.sign('admin:' + group.id), 60 * 60 * 12);
+  res.status(201).json({ ok: true, groupName: group.name });
+});
+
 app.post('/api/admin/login', (req, res) => {
-  if (!process.env.ADMIN_PASSWORD) return res.status(503).json({ error: 'Set ADMIN_PASSWORD on the server first' });
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (email) {
+    const g = db.groups.find((x) => x.email === email);
+    if (!g || !auth.checkHash(req.body?.password, g.pw)) return res.status(401).json({ error: 'Wrong email or password' });
+    auth.setCookie(res, 'bb_admin', auth.sign('admin:' + g.id), 60 * 60 * 12);
+    return res.json({ ok: true, groupName: g.name });
+  }
+  if (!process.env.ADMIN_PASSWORD) return res.status(400).json({ error: 'Enter your email and password' });
   if (!auth.checkPassword(req.body?.password)) return res.status(401).json({ error: 'Wrong password' });
   auth.setCookie(res, 'bb_admin', auth.sign('admin'), 60 * 60 * 12);
-  res.json({ ok: true });
+  res.json({ ok: true, groupName: groupName('demo') });
 });
 
 app.get('/api/admin/members', auth.requireAdmin, async (req, res) => {
-  const members = await Promise.all(db.members.map((m) => publicMember(m, { forAdmin: true })));
-  res.json({ mode: otari.mode, modeLabel, members });
+  const mine = db.members.filter((m) => groupOf(m) === req.groupId);
+  const members = await Promise.all(mine.map((m) => publicMember(m, { forAdmin: true })));
+  const limits = req.groupId === 'demo' ? null : { maxCapUsd: SIGNUP_MAX_CAP, maxMembers: SIGNUP_MAX_MEMBERS };
+  res.json({ mode: otari.mode, modeLabel, groupName: groupName(req.groupId), limits, members });
 });
 
 const validCap = (cap) => Number.isFinite(cap) && cap >= 0.01 && cap <= 100;
@@ -133,7 +175,14 @@ app.post('/api/admin/members', auth.requireAdmin, async (req, res) => {
   const cap = Math.round(Number(req.body?.weeklyCapUsd) * 100) / 100;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   if (!validCap(cap)) return res.status(400).json({ error: 'Weekly cap must be between $0.01 and $100' });
-  const member = { id: store.newId(), name, code: store.newJoinCode(), weeklyCapUsd: cap, createdAt: Date.now() };
+  if (req.groupId !== 'demo') {
+    if (cap > SIGNUP_MAX_CAP) return res.status(400).json({ error: `On this demo the weekly cap is at most $${SIGNUP_MAX_CAP.toFixed(2)}` });
+    if (db.members.filter((m) => groupOf(m) === req.groupId).length >= SIGNUP_MAX_MEMBERS)
+      return res.status(400).json({ error: `On this demo a group can have up to ${SIGNUP_MAX_MEMBERS} members` });
+  }
+  let code = store.newJoinCode();
+  while (db.members.some((m) => m.code === code)) code = store.newJoinCode();
+  const member = { id: store.newId(), groupId: req.groupId, name, code, weeklyCapUsd: cap, createdAt: Date.now() };
   if (otari.mode === 'managed') {
     try {
       member.otari = await otari.provisionMember({ memberId: member.id, name, weeklyCapUsd: cap });
@@ -147,12 +196,14 @@ app.post('/api/admin/members', auth.requireAdmin, async (req, res) => {
 });
 
 app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
-  const m = findMember(req.params.id);
+  const m = findGroupMember(req);
   if (!m) return res.status(404).json({ error: 'No such member' });
   try {
     if (req.body?.weeklyCapUsd !== undefined) {
       const cap = Math.round(Number(req.body.weeklyCapUsd) * 100) / 100;
       if (!validCap(cap)) return res.status(400).json({ error: 'Weekly cap must be between $0.01 and $100' });
+      if (req.groupId !== 'demo' && cap > SIGNUP_MAX_CAP)
+        return res.status(400).json({ error: `On this demo the weekly cap is at most $${SIGNUP_MAX_CAP.toFixed(2)}` });
       if (m.otari?.budgetId) await otari.setCap(m.otari.budgetId, cap);
       m.weeklyCapUsd = cap;
     }
@@ -170,7 +221,7 @@ app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 });
 
 app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) => {
-  const m = findMember(req.params.id);
+  const m = findGroupMember(req);
   if (!m?.otari?.keyId) return res.status(400).json({ error: 'This member has no own Otari key to rotate' });
   try {
     Object.assign(m.otari, await otari.rotateKey(m.otari.keyId));
@@ -182,7 +233,7 @@ app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) =>
 });
 
 app.delete('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
-  const m = findMember(req.params.id);
+  const m = findGroupMember(req);
   if (!m) return res.status(404).json({ error: 'No such member' });
   if (m.otari) await otari.deprovision(m.otari);
   db.members = db.members.filter((x) => x.id !== m.id);
@@ -202,7 +253,7 @@ app.post('/api/member/login', (req, res) => {
 app.get('/api/me', async (req, res) => {
   const m = findMember(auth.memberIdFrom(req));
   if (!m) return res.status(401).json({ error: 'Sign in with your code' });
-  res.json({ member: await publicMember(m) });
+  res.json({ member: await publicMember(m), groupName: groupName(groupOf(m)) });
 });
 
 function cleanMessages(list) {

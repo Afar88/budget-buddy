@@ -130,3 +130,37 @@ test('redis store (Vercel/Upstash): state survives a fresh instance', async () =
     assert.equal(list.body.members[0].requests, 1);
   } finally { b.stop(); o.srv.close(); r.srv.close(); }
 });
+
+test('open sign-up: each grown-up gets a private group with limits', async () => {
+  const o = await mock.start();
+  const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
+  try {
+    const a = await app.call('a', 'POST', '/api/admin/signup', { groupName: 'Okafors', email: 'A@x.com', password: 'longpass1' });
+    assert.equal(a.status, 201);
+    assert.equal((await app.call('a2', 'POST', '/api/admin/signup', { groupName: 'Dup', email: 'a@x.com', password: 'longpass1' })).status, 409);
+    assert.equal((await app.call('b', 'POST', '/api/admin/signup', { groupName: 'Year 6B', email: 'b@x.com', password: 'short' })).status, 400);
+    assert.equal((await app.call('b', 'POST', '/api/admin/signup', { groupName: 'Year 6B', email: 'b@x.com', password: 'longpass2' })).status, 201);
+
+    assert.equal((await app.call('a', 'POST', '/api/admin/members', { name: 'Ada', weeklyCapUsd: 5 })).status, 400, 'cap limit');
+    const ada = await app.call('a', 'POST', '/api/admin/members', { name: 'Ada', weeklyCapUsd: 0.5 });
+    assert.equal(ada.status, 201);
+    const listA = await app.call('a', 'GET', '/api/admin/members');
+    assert.equal(listA.body.groupName, 'Okafors');
+    assert.equal(listA.body.members.length, 1);
+    const listB = await app.call('b', 'GET', '/api/admin/members');
+    assert.equal(listB.body.members.length, 0, 'groups are private');
+    assert.equal((await app.call('b', 'DELETE', `/api/admin/members/${ada.body.member.id}`)).status, 404);
+
+    assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'nope1234' })).status, 401);
+    assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' })).status, 200);
+    assert.equal((await app.call('demo', 'POST', '/api/admin/login', { password: 'pw' })).status, 200);
+    assert.equal((await app.call('demo', 'GET', '/api/admin/members')).body.members.length, 0, 'demo group does not see signups');
+
+    assert.equal((await app.call('kid', 'POST', '/api/member/login', { code: ada.body.member.code })).status, 200);
+    const me = await app.call('kid', 'GET', '/api/me');
+    assert.equal(me.body.groupName, 'Okafors');
+  } finally {
+    app.stop();
+    o.srv.close();
+  }
+});

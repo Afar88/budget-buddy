@@ -1,6 +1,6 @@
 // Budget Buddy front end: plain JS, no build step.
 const $ = (id) => document.getElementById(id);
-const views = ['landing', 'admin-login', 'admin', 'chat'];
+const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'chat'];
 let pollTimer = null;
 let me = null;
 
@@ -77,11 +77,31 @@ $('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('admin-error').textContent = '';
   try {
-    await api('/api/admin/login', { method: 'POST', body: { password: $('admin-pass').value } });
+    await api('/api/admin/login', { method: 'POST', body: { email: $('admin-email').value, password: $('admin-pass').value } });
     $('admin-pass').value = '';
     openAdmin();
   } catch (err) {
     $('admin-error').textContent = err.message;
+  }
+});
+
+$('to-signup').addEventListener('click', () => show('admin-signup'));
+$('cta-signup').addEventListener('click', () => show('admin-signup'));
+$('cta-login').addEventListener('click', () => show('admin-login'));
+$('to-login').addEventListener('click', () => show('admin-login'));
+
+$('form-signup').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('signup-error').textContent = '';
+  try {
+    await api('/api/admin/signup', {
+      method: 'POST',
+      body: { groupName: $('su-group').value, email: $('su-email').value, password: $('su-pass').value },
+    });
+    $('su-pass').value = '';
+    openAdmin();
+  } catch (err) {
+    $('signup-error').textContent = err.message;
   }
 });
 
@@ -120,6 +140,13 @@ async function refreshMembers() {
     return;
   }
   $('mode-badge').textContent = data.modeLabel || '';
+  $('admin-title').textContent = data.groupName || 'Your group';
+  $('group').textContent = data.groupName ? '· ' + data.groupName : '';
+  $('limits').classList.toggle('hidden', !data.limits);
+  if (data.limits) {
+    $('limits').textContent = `Free demo limits: up to ${data.limits.maxMembers} members, weekly cap up to ${usd(data.limits.maxCapUsd)} each.`;
+    $('m-cap').max = data.limits.maxCapUsd;
+  }
   const ms = data.members;
   $('empty').classList.toggle('hidden', ms.length > 0);
   const spent = ms.reduce((s, m) => s + m.spentUsd, 0);
@@ -134,7 +161,7 @@ async function refreshMembers() {
       const pct = Math.min(100, (m.spentUsd / m.weeklyCapUsd) * 100 || 0);
       return `<tr data-id="${m.id}">
         <td><b>${escapeHtml(m.name)}</b>${m.paused ? ' <span class="badge">paused</span>' : ''}</td>
-        <td class="code">${m.code}</td>
+        <td><button class="code copy" data-act="copy" title="Copy join code">${m.code} ⧉</button></td>
         <td><div class="meter"><div class="${meterClass(pct)}" style="width:${pct}%"></div></div>
             <span class="small">${usd(m.spentUsd)} of ${usd(m.weeklyCapUsd)}${m.source ? ` · <span class="muted">${m.source}</span>` : ''}</span></td>
         <td>${m.requests ?? 0}</td>
@@ -155,6 +182,13 @@ $('members').addEventListener('click', async (e) => {
   const id = btn.closest('tr').dataset.id;
   const act = btn.dataset.act;
   try {
+    if (act === 'copy') {
+      const code = btn.textContent.replace(' ⧉', '').trim();
+      await navigator.clipboard?.writeText(code).catch(() => {});
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => (btn.textContent = code + ' ⧉'), 1200);
+      return;
+    }
     if (act === 'cap') {
       const v = prompt('New weekly cap in US dollars (e.g. 0.50):');
       if (v === null) return;
@@ -202,17 +236,31 @@ function lightMarkdown(s) {
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 }
 
+const SUGGESTIONS = ['Explain photosynthesis like I’m 10', 'Help me plan my essay', 'Quiz me on fractions', 'Why is the sky blue?'];
+function renderChips(show) {
+  $('chips').innerHTML = show ? SUGGESTIONS.map((t) => `<button type="button" class="chip">${t}</button>`).join('') : '';
+}
+$('chips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  $('msg').value = b.textContent;
+  $('form-chat').requestSubmit();
+});
+
 function renderChat() {
   const h = loadHistory();
+  renderChips(h.length === 0);
   $('chat').innerHTML = h.length
     ? h.map((m) => `<div class="bubble ${m.role}">${m.role === 'assistant' ? lightMarkdown(m.content) : escapeHtml(m.content)}${m.cost ? `<span class="cost">${m.cost}</span>` : ''}</div>`).join('')
-    : '<p class="muted">Ask a question to get started. Try “Explain photosynthesis like I’m 10”.</p>';
+    : '<p class="muted center">Ask anything to get started, or tap an idea below.</p>';
   $('chat').scrollTop = $('chat').scrollHeight;
 }
 
 async function openChat() {
   try {
-    me = (await api('/api/me')).member;
+    const r = await api('/api/me');
+    me = r.member;
+    if (r.groupName) $('group').textContent = '· ' + r.groupName;
   } catch {
     return show('landing');
   }

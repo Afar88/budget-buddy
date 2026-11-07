@@ -13,8 +13,10 @@ Built for **[Developers Wilding: Online](https://otari.ai/devs-wilding)**, Mozil
 ## ⏱️ How to test in 2 minutes
 
 - **Watch:** the 3:30 narrated demo, [`demo/budget-buddy-demo.mp4`](https://drive.google.com/file/d/1DRKWM4ntWajHN1JIJxdJIgDlJovaWlN6/view).
-- **Member side, live:** open https://budget-buddy-one-mu.vercel.app, enter join code **`NM72XV`** (Ada, 14, $0.50/week; also `JA8MYW` Tobi, 11) and chat. Each answer shows its real Otari cost and the budget left this week.
-- **Grown-up side:** the live admin password is private, so run it locally (Node 18.17+). No Otari key needed: this uses the built-in fake Otari from the tests, in managed mode (own key + budget per member).
+- **Grown-up side, live:** open https://budget-buddy-one-mu.vercel.app → **Create free account** (any family or class name, any email, 8+ character password). You get your own private dashboard: add a member with a weekly cap and copy their join code.
+- **Member side, live:** in another browser or a private window, enter that join code (or the demo code **`NM72XV`**, Ada, 14, $0.50/week) and chat. Each answer shows its real Otari cost and the budget left this week, and the grown-up dashboard updates live.
+- Open sign-up runs on one shared, capped Otari key, so new groups are limited to 10 members and a $1.00 weekly cap each (`SIGNUP_MAX_MEMBERS`, `SIGNUP_MAX_CAP_USD`).
+- **Run it locally** (Node 18.17+). No Otari key needed: this uses the built-in fake Otari from the tests, in managed mode (own key + budget per member).
 
 ```bash
 git clone -b hackathon https://github.com/Afar88/budget-buddy.git && cd budget-buddy && npm install
@@ -22,7 +24,7 @@ node -e "require('./test/mock-otari').start(8787)" &
 OTARI_BASE_URL=http://127.0.0.1:8787/api/v1 OTARI_ADMIN_KEY=admin-key ADMIN_PASSWORD=test SESSION_SECRET=dev npm start
 ```
 
-Open http://localhost:3000 → **Grown-up / teacher** → password `test` → add a member with a cap → join with their code in another browser and chat (replies say "Hello from mock Otari!"). Lower the cap, **Pause** or **Remove** and watch the dashboard. For real answers, use an [otari.ai](https://otari.ai) key instead (`OTARI_API_KEY=otk_... ADMIN_PASSWORD=test SESSION_SECRET=dev npm start`). `npm test` runs the full flow offline.
+Open http://localhost:3000 → **Sign in** with password `test` (leave email blank for the built-in demo group), or **Create free account** → add a member with a cap → join with their code in another browser and chat (replies say "Hello from mock Otari!"). Lower the cap, **Pause** or **Remove** and watch the dashboard. For real answers, use an [otari.ai](https://otari.ai) key instead (`OTARI_API_KEY=otk_... ADMIN_PASSWORD=test SESSION_SECRET=dev npm start`). `npm test` runs the full flow offline.
 
 ---
 
@@ -191,3 +193,7 @@ test/               end-to-end tests against a mock Otari
 ## License
 
 MIT
+
+## Changelog
+
+- **2026-11-07:** Open sign-up. Any parent or teacher creates an account (email + password, scrypt-hashed) and gets a private group: members, join codes and spend are only visible to that group. Demo-size limits on shared keys. New landing page with separate doors for kids and grown-ups, copy-to-clipboard join codes, suggestion chips in chat, and a mobile-first redesign. Test added for group privacy and limits.

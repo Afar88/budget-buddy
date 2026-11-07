@@ -18,7 +18,7 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 const REDIS_KEY = process.env.REDIS_KEY || 'budget-buddy:db';
 const backend = REDIS_URL && REDIS_TOKEN ? 'redis' : 'file';
 
-const EMPTY = { settings: { groupName: 'Our group' }, members: [], ledger: [] };
+const EMPTY = { settings: { groupName: 'Our group' }, groups: [], members: [], ledger: [] };
 
 // One shared object; load() refreshes its contents in place so every module holding it sees fresh data.
 const db = structuredClone(EMPTY);
@@ -27,6 +27,7 @@ let fileLoaded = false;
 function normalize(data) {
   data = data && typeof data === 'object' ? data : {};
   db.settings = data.settings || { groupName: 'Our group' };
+  db.groups = data.groups || [];
   db.members = data.members || [];
   db.ledger = data.ledger || [];
   return db;

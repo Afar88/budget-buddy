@@ -52,9 +52,33 @@ function checkPassword(given) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// Passwords for self-signed-up grown-ups: scrypt with a per-account salt.
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), salt, 32).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function checkHash(password, stored) {
+  const [salt, hash] = String(stored || '').split(':');
+  if (!salt || !hash) return false;
+  const a = Buffer.from(hash, 'hex');
+  const b = crypto.scryptSync(String(password || ''), salt, 32);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// The admin cookie holds the group id: "admin:<groupId>". The original demo
+// password signs in to the built-in "demo" group (plain "admin" means demo too).
 function requireAdmin(req, res, next) {
   const v = verify(parseCookies(req.headers.cookie).bb_admin);
-  if (v === 'admin') return next();
+  if (v === 'admin') {
+    req.groupId = 'demo';
+    return next();
+  }
+  if (v && v.startsWith('admin:')) {
+    req.groupId = v.slice(6);
+    return next();
+  }
   res.status(401).json({ error: 'Admin sign-in required' });
 }
 
@@ -63,4 +87,4 @@ function memberIdFrom(req) {
   return v && v.startsWith('member:') ? v.slice(7) : null;
 }
 
-module.exports = { sign, verify, setCookie, clearCookie, checkPassword, requireAdmin, memberIdFrom };
+module.exports = { sign, verify, setCookie, clearCookie, checkPassword, hashPassword, checkHash, requireAdmin, memberIdFrom };
