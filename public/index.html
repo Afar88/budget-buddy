@@ -12,9 +12,19 @@
   <header class="top">
     <a class="brand" href="/">🪙 <b>Budget Buddy</b></a>
     <span id="group" class="muted"></span>
-    <nav>
+    <nav class="top-nav">
       <button id="nav-admin" class="link">Grown-up / teacher</button>
-      <button id="nav-logout" class="link hidden">Sign out</button>
+      <div id="account-menu" class="account-menu hidden">
+        <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu-panel">
+          <span></span><span></span><span></span>
+        </button>
+        <div id="menu-panel" class="menu-panel hidden" role="menu" aria-label="Account menu">
+          <p id="menu-heading" class="menu-heading">Menu</p>
+          <button id="menu-primary" type="button" role="menuitem">Dashboard</button>
+          <button id="menu-secondary" type="button" role="menuitem">Refresh</button>
+          <button id="menu-logout" type="button" role="menuitem" class="menu-signout">Sign out</button>
+        </div>
+      </div>
     </nav>
   </header>
 
