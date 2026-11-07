@@ -6,6 +6,7 @@ const path = require('path');
 const express = require('express');
 const store = require('./store');
 const auth = require('./auth');
+const email = require('./email');
 const otari = require('./otari');
 const { weekStart, nextReset } = require('./week');
 
@@ -165,11 +166,87 @@ app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5, 15 * 60 * 1000, 
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (db.groups.some((g) => g.email === email)) return res.status(409).json({ error: 'That email already has an account. Sign in instead.' });
   if (db.groups.length >= MAX_GROUPS) return res.status(503).json({ error: 'Sign-ups are full for this demo right now' });
-  const group = { id: store.newId(), name, email, pw: auth.hashPassword(password), createdAt: Date.now() };
+  if (!email.configured()) return res.status(503).json({ error: 'Email verification is not configured yet. Please try again later.' });
+  const token = auth.createToken();
+  const group = {
+    id: store.newId(), name, email, pw: auth.hashPassword(password), createdAt: Date.now(),
+    emailVerified: false, verificationTokenHash: auth.hashToken(token), verificationExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+  };
   db.groups.push(group);
   await store.save();
-  auth.setCookie(res, 'bb_admin', auth.sign('admin:' + group.id), 60 * 60 * 12);
-  res.status(201).json({ ok: true, groupName: group.name });
+  try {
+    await email.sendVerification(group, token);
+  } catch (e) {
+    db.groups = db.groups.filter((g) => g.id !== group.id);
+    await store.save();
+    console.error('[email] verification delivery failed:', e.message);
+    return res.status(503).json({ error: 'We could not send your verification email. Please try again shortly.' });
+  }
+  res.status(201).json({ ok: true, verificationRequired: true, email: group.email });
+});
+
+app.post('/api/admin/verify-email', auth.rateLimit('verify-email', 10, 15 * 60 * 1000, store), async (req, res) => {
+  const token = String(req.body?.token || '');
+  if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ error: 'This verification link is invalid or expired.' });
+  const hash = auth.hashToken(token);
+  const group = db.groups.find((g) => g.verificationTokenHash === hash);
+  if (!group || !group.verificationExpiresAt || group.verificationExpiresAt <= Date.now()) {
+    return res.status(400).json({ error: 'This verification link is invalid or expired. Request a new one.' });
+  }
+  group.emailVerified = true;
+  delete group.verificationTokenHash;
+  delete group.verificationExpiresAt;
+  await store.save();
+  res.json({ ok: true, email: group.email });
+});
+
+app.post('/api/admin/resend-verification', auth.rateLimit('resend-verification', 3, 60 * 60 * 1000, store), async (req, res) => {
+  if (!email.configured()) return res.status(503).json({ error: 'Email delivery is not configured yet.' });
+  const address = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
+  const group = db.groups.find((g) => g.email === address && !g.emailVerified);
+  if (group) {
+    const token = auth.createToken();
+    group.verificationTokenHash = auth.hashToken(token);
+    group.verificationExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    await store.save();
+    try { await email.sendVerification(group, token); }
+    catch (e) {
+      console.error('[email] verification resend failed:', e.message);
+      return res.status(503).json({ error: 'We could not send the email right now. Please try again later.' });
+    }
+  }
+  res.json({ ok: true, message: 'If the account needs verification, a new link has been sent.' });
+});
+
+app.post('/api/admin/forgot-password', auth.rateLimit('forgot-password', 5, 15 * 60 * 1000, store), async (req, res) => {
+  if (!email.configured()) return res.status(503).json({ error: 'Password recovery email is not configured yet.' });
+  const address = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
+  const group = db.groups.find((g) => g.email === address && g.emailVerified !== false);
+  if (group) {
+    const token = auth.createToken();
+    group.resetTokenHash = auth.hashToken(token);
+    group.resetExpiresAt = Date.now() + 45 * 60 * 1000;
+    await store.save();
+    try { await email.sendPasswordReset(group, token); }
+    catch (e) { console.error('[email] password reset delivery failed:', e.message); }
+  }
+  res.json({ ok: true, message: 'If an account exists for that email, a password reset link has been sent.' });
+});
+
+app.post('/api/admin/reset-password', auth.rateLimit('reset-password', 10, 15 * 60 * 1000, store), async (req, res) => {
+  const token = String(req.body?.token || '');
+  const password = String(req.body?.password || '');
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ error: 'This reset link is invalid or expired.' });
+  const hash = auth.hashToken(token);
+  const group = db.groups.find((g) => g.resetTokenHash === hash && g.resetExpiresAt > Date.now() && g.emailVerified !== false);
+  if (!group) return res.status(400).json({ error: 'This reset link is invalid or expired. Request another one.' });
+  group.pw = auth.hashPassword(password);
+  group.sessionVersion = auth.createToken();
+  delete group.resetTokenHash;
+  delete group.resetExpiresAt;
+  await store.save();
+  res.json({ ok: true, message: 'Password updated. Please sign in with your new password.' });
 });
 
 app.post('/api/admin/login', auth.rateLimit('admin-login', 10, 15 * 60 * 1000, store), (req, res) => {
@@ -177,7 +254,8 @@ app.post('/api/admin/login', auth.rateLimit('admin-login', 10, 15 * 60 * 1000, s
   if (email) {
     const g = db.groups.find((x) => x.email === email);
     if (!g || !auth.checkHash(req.body?.password, g.pw)) return res.status(401).json({ error: 'Wrong email or password' });
-    auth.setCookie(res, 'bb_admin', auth.sign('admin:' + g.id), 60 * 60 * 12);
+    if (g.emailVerified === false) return res.status(403).json({ error: 'Please verify your email before signing in. You can resend the verification link below.' });
+    auth.setCookie(res, 'bb_admin', auth.sign('admin:' + g.id + ':' + (g.sessionVersion || '0')), 60 * 60 * 12);
     return res.json({ ok: true, groupName: g.name });
   }
   if (!process.env.ADMIN_PASSWORD) return res.status(400).json({ error: 'Enter your email and password' });
