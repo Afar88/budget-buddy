@@ -135,3 +135,11 @@ button.copy{border:1px solid #d5ecdf;background:var(--accent-soft);color:#106344
 .menu-budget-title{margin:0 0 9px;font-size:.82rem;font-weight:750;color:var(--ink)}
 .menu-budget .meter{width:100%;min-width:0;margin-bottom:7px}
 .menu-budget #me-left{display:block;color:var(--muted);line-height:1.4}
+
+.eyebrow{margin:0 0 5px;color:var(--accent);font-size:.72rem;font-weight:800;letter-spacing:.1em}
+.member-status{margin:4px 0 14px;padding:12px 14px;border-radius:13px;font-size:.9rem;line-height:1.5}
+.member-status.paused{background:#fff5e7;border:1px solid #f0d7aa;color:#87520b}
+.member-status.unavailable{background:#fff1ef;border:1px solid #f0cfca;color:#963e35}
+#view-admin-group .members{margin-top:14px}
+#view-admin-group .spread{align-items:center}
+@media(max-width:760px){#view-admin-group .members{display:block;overflow-x:auto;white-space:nowrap}}
