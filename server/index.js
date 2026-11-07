@@ -134,7 +134,7 @@ app.post('/api/logout', (req, res) => {
 
 // ---------- admin ----------
 // Open sign-up: any parent or teacher creates their own private group.
-app.post('/api/admin/signup', auth.rateLimit('admin-signup'), async (req, res) => {
+app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5), async (req, res) => {
   const name = String(req.body?.groupName || '').trim().slice(0, 40);
   const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
   const password = String(req.body?.password || '');
@@ -245,7 +245,7 @@ app.delete('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 });
 
 // ---------- member ----------
-app.post('/api/member/login', auth.rateLimit('member-login'), (req, res) => {
+app.post('/api/member/login', auth.rateLimit('member-login', 60), (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const m = db.members.find((x) => x.code === code);
   if (!m) return res.status(401).json({ error: 'That code did not match anyone' });
