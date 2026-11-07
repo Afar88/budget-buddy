@@ -126,7 +126,7 @@ OTARI_MODEL=<a model your gateway serves, e.g. openai:gpt-4o-mini>
 npm test
 ```
 
-Runs the whole flow (create member → chat → hit the cap → change cap, pause, rotate, remove) against a small mock of the Otari API in `test/mock-otari.js`, in both modes, plus a Redis-store test (a fresh instance must see the data the first one saved) against a tiny Upstash REST mock. No Otari credit is spent.
+Runs the core flows (create member → chat → hit the cap → change cap, pause, rotate, remove) against a small mock of the Otari API in `test/mock-otari.js`, in both modes, plus Redis persistence and authentication-throttling checks. No Otari credit is spent.
 
 ## Deploy for free
 
@@ -194,4 +194,4 @@ MIT
 
 ## Changelog
 
-- **2026-11-07:** Open sign-up. Any parent or teacher creates an account (email + password, scrypt-hashed) and gets a private group: members, join codes and spend are only visible to that group. Demo-size limits on shared keys. New landing page with separate doors for kids and grown-ups, copy-to-clipboard join codes, suggestion chips in chat, and a mobile-first redesign. Test added for group privacy and limits. Removed the AI-narrated demo and feedback videos; a self-recorded demo replaces them.
+- **2026-11-07:** Added per-instance throttling for admin sign-in, account creation and member join-code attempts; refreshed setup instructions and documented security/storage limits. Open sign-up. Any parent or teacher creates an account (email + password, scrypt-hashed) and gets a private group: members, join codes and spend are only visible to that group. Demo-size limits on shared keys. New landing page with separate doors for kids and grown-ups, copy-to-clipboard join codes, suggestion chips in chat, and a mobile-first redesign. Test added for group privacy and limits. Removed the AI-narrated demo and feedback videos; a self-recorded demo replaces them.
