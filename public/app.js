@@ -118,23 +118,25 @@ $('code').addEventListener('input', () => {
 });
 $('form-code').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const form = e.currentTarget;
   $('code-error').textContent = '';
-  setFormBusy(e.currentTarget, true, 'Joining…');
+  setFormBusy(form, true, 'Joining…');
   try {
     await api('/api/member/login', { method: 'POST', body: { code: $('code').value.trim() } });
     await openChat();
   } catch (err) {
     $('code-error').textContent = err.message;
   } finally {
-    setFormBusy(e.currentTarget, false);
+    setFormBusy(form, false);
   }
 });
 
 // ---------- admin ----------
 $('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const form = e.currentTarget;
   $('admin-error').textContent = '';
-  setFormBusy(e.currentTarget, true, 'Signing in…');
+  setFormBusy(form, true, 'Signing in…');
   try {
     await api('/api/admin/login', { method: 'POST', body: { email: $('admin-email').value, password: $('admin-pass').value } });
     $('admin-pass').value = '';
@@ -142,7 +144,7 @@ $('form-admin').addEventListener('submit', async (e) => {
   } catch (err) {
     $('admin-error').textContent = err.message;
   } finally {
-    setFormBusy(e.currentTarget, false);
+    setFormBusy(form, false);
   }
 });
 
@@ -155,8 +157,9 @@ $('to-login').addEventListener('click', () => show('admin-login'));
 
 $('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const form = e.currentTarget;
   $('signup-error').textContent = '';
-  setFormBusy(e.currentTarget, true, 'Creating account…');
+  setFormBusy(form, true, 'Creating account…');
   try {
     await api('/api/admin/signup', {
       method: 'POST',
@@ -167,7 +170,7 @@ $('form-signup').addEventListener('submit', async (e) => {
   } catch (err) {
     $('signup-error').textContent = err.message;
   } finally {
-    setFormBusy(e.currentTarget, false);
+    setFormBusy(form, false);
   }
 });
 
