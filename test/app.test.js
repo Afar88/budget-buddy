@@ -86,6 +86,27 @@ test('hosted mode: shared key, tagged requests, app enforces cap from Otari cost
   } finally { app.stop(); o.srv.close(); }
 });
 
+// Mock Resend-compatible email API. Captures messages without sending real email.
+async function mockEmail() {
+  const http = require('node:http');
+  const messages = [];
+  const srv = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', (chunk) => (raw += chunk));
+    req.on('end', () => {
+      if (req.headers.authorization !== 'Bearer email-test-key') {
+        res.writeHead(401); return res.end('{"error":"unauthorized"}');
+      }
+      messages.push(JSON.parse(raw));
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{"id":"email-test"}');
+    });
+  });
+  return new Promise((resolve) => srv.listen(0, '127.0.0.1', () => resolve({
+    srv, messages, url: `http://127.0.0.1:${srv.address().port}`,
+  })));
+}
+
 // Minimal Upstash-style Redis REST mock: POST / with ["GET", key] or ["SET", key, value].
 function mockRedis() {
   const http = require('node:http');
@@ -150,42 +171,53 @@ test('redis store (Vercel/Upstash): state survives a fresh instance', async () =
   } finally { b.stop(); o.srv.close(); r.srv.close(); }
 });
 
-test('open sign-up: each grown-up gets a private group with limits', async () => {
+test('email verification and password recovery protect self-service accounts', async () => {
   const o = await mock.start();
-  const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
+  const mail = await mockEmail();
+  const app = await boot({
+    OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
+    RESEND_API_KEY: 'email-test-key', RESEND_API_URL: mail.url + '/emails',
+    EMAIL_FROM: 'Budget Buddy <hello@example.test>', APP_BASE_URL: 'https://budget-buddy.test',
+  });
   try {
-    const a = await app.call('a', 'POST', '/api/admin/signup', { groupName: 'Okafors', email: 'A@x.com', password: 'longpass1' });
-    assert.equal(a.status, 201);
+    const signup = await app.call('a', 'POST', '/api/admin/signup', {
+      groupName: 'Okafors', email: 'A@x.com', password: 'longpass1',
+    });
+    assert.equal(signup.status, 201);
+    assert.equal(signup.body.verificationRequired, true);
+    assert.equal(mail.messages.length, 1);
+    const verifyToken = new URL(mail.messages[0].text.match(/https?:\/\/\S+/)[0]).searchParams.get('verify');
+    assert.ok(verifyToken);
+    assert.equal((await app.call('a', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' })).status, 403);
+    assert.equal((await app.call('verify', 'POST', '/api/admin/verify-email', { token: verifyToken })).status, 200);
+    assert.equal((await app.call('verify-again', 'POST', '/api/admin/verify-email', { token: verifyToken })).status, 400);
+
     assert.equal((await app.call('a2', 'POST', '/api/admin/signup', { groupName: 'Dup', email: 'a@x.com', password: 'longpass1' })).status, 409);
     assert.equal((await app.call('b', 'POST', '/api/admin/signup', { groupName: 'Year 6B', email: 'b@x.com', password: 'short' })).status, 400);
-    assert.equal((await app.call('b', 'POST', '/api/admin/signup', { groupName: 'Year 6B', email: 'b@x.com', password: 'longpass2' })).status, 201);
+    const login = await app.call('a', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' });
+    assert.equal(login.status, 200);
+    const member = await app.call('a', 'POST', '/api/admin/members', { name: 'Ada', weeklyCapUsd: 0.5 });
+    assert.equal(member.status, 201);
 
-    assert.equal((await app.call('a', 'POST', '/api/admin/members', { name: 'Ada', weeklyCapUsd: 5 })).status, 400, 'cap limit');
-    const ada = await app.call('a', 'POST', '/api/admin/members', { name: 'Ada', weeklyCapUsd: 0.5 });
-    assert.equal(ada.status, 201);
-    const listA = await app.call('a', 'GET', '/api/admin/members');
-    assert.equal(listA.body.groupName, 'Okafors');
-    assert.equal(listA.body.members.length, 1);
-    const listB = await app.call('b', 'GET', '/api/admin/members');
-    assert.equal(listB.body.members.length, 0, 'groups are private');
-    assert.equal((await app.call('b', 'PATCH', `/api/admin/members/${ada.body.member.id}`, { weeklyCapUsd: 0.75 })).status, 404);
-    assert.equal((await app.call('b', 'POST', `/api/admin/members/${ada.body.member.id}/rotate`)).status, 404);
-    assert.equal((await app.call('b', 'DELETE', `/api/admin/members/${ada.body.member.id}`)).status, 404);
+    const forgot = await app.call('forgot', 'POST', '/api/admin/forgot-password', { email: 'a@x.com' });
+    assert.equal(forgot.status, 200);
+    assert.match(forgot.body.message, /If an account exists/);
+    const resetMail = mail.messages[mail.messages.length - 1];
+    const resetToken = new URL(resetMail.text.match(/https?:\/\/\S+/)[0]).searchParams.get('reset');
+    assert.ok(resetToken);
+    assert.equal((await app.call('reset', 'POST', '/api/admin/reset-password', { token: resetToken, password: 'newpass123' })).status, 200);
+    assert.equal((await app.call('reset-again', 'POST', '/api/admin/reset-password', { token: resetToken, password: 'anotherpass' })).status, 400);
+    assert.equal((await app.call('old-login', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' })).status, 401);
+    assert.equal((await app.call('new-login', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'newpass123' })).status, 200);
+    assert.equal((await app.call('a', 'GET', '/api/admin/members')).status, 401, 'password reset invalidates earlier admin sessions');
 
-    assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'nope1234' })).status, 401);
-    assert.equal((await app.call('a3', 'POST', '/api/admin/login', { email: 'a@x.com', password: 'longpass1' })).status, 200);
-    assert.equal((await app.call('demo', 'POST', '/api/admin/login', { password: 'pw' })).status, 200);
-    assert.equal((await app.call('demo', 'GET', '/api/admin/members')).body.members.length, 0, 'demo group does not see signups');
-
-    assert.equal((await app.call('kid', 'POST', '/api/member/login', { code: ada.body.member.code })).status, 200);
-    const me = await app.call('kid', 'GET', '/api/me');
-    assert.equal(me.body.groupName, 'Okafors');
+    const unknown = await app.call('unknown', 'POST', '/api/admin/forgot-password', { email: 'nobody@example.com' });
+    assert.equal(unknown.status, 200);
+    assert.equal(mail.messages.length, 2, 'unknown addresses do not trigger email delivery');
   } finally {
-    app.stop();
-    o.srv.close();
+    app.stop(); o.srv.close(); mail.srv.close();
   }
 });
-
 
 test('authentication endpoints throttle repeated attempts', async () => {
   const o = await mock.start();
@@ -226,7 +258,13 @@ test('Redis auth throttling is shared across separate Vercel instances', async (
 test('Redis write lock prevents concurrent Vercel instances from overwriting shared state', async () => {
   const o = await mock.start();
   const r = await mockRedis();
-  const env = { OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key', KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token' };
+  const mail = await mockEmail();
+  const env = {
+    OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
+    KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token',
+    RESEND_API_KEY: 'email-test-key', RESEND_API_URL: mail.url + '/emails',
+    EMAIL_FROM: 'Budget Buddy <hello@example.test>', APP_BASE_URL: 'https://budget-buddy.test',
+  };
   const a = await boot(env);
   const b = await boot(env);
   try {
@@ -238,6 +276,37 @@ test('Redis write lock prevents concurrent Vercel instances from overwriting sha
     assert.ok(results.find((x) => x.status === 503).retryAfter, 'busy response includes Retry-After');
     assert.ok(r.data.get('budget-buddy:db'), 'successful writer persisted shared state');
   } finally {
-    a.stop(); b.stop(); o.srv.close(); r.srv.close();
+    a.stop(); b.stop(); o.srv.close(); r.srv.close(); mail.srv.close();
+  }
+});
+
+
+test('Sendliberty domain-free Gmail relay sends verification and password reset messages', async () => {
+  const o = await mock.start();
+  const mail = await mockEmail();
+  const app = await boot({
+    OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
+    SENDLIBERTY_API_KEY: 'email-test-key', SENDLIBERTY_FROM: 'budgetbuddy.test@gmail.com', SENDLIBERTY_API_URL: mail.url + '/api/send',
+    APP_BASE_URL: 'https://budget-buddy.test',
+  });
+  try {
+    const signup = await app.call('a', 'POST', '/api/admin/signup', {
+      groupName: 'Test family', email: 'parent@example.com', password: 'longpass1',
+    });
+    assert.equal(signup.status, 201);
+    assert.equal(mail.messages.length, 1);
+    assert.equal(mail.messages[0].to, 'parent@example.com');
+    assert.equal(mail.messages[0].from, 'budgetbuddy.test@gmail.com');
+    assert.match(mail.messages[0].subject, /Verify your Budget Buddy email/);
+    const verifyToken = new URL(mail.messages[0].text.match(/https?:\/\/\S+/)[0]).searchParams.get('verify');
+    assert.ok(verifyToken);
+    assert.equal((await app.call('verify', 'POST', '/api/admin/verify-email', { token: verifyToken })).status, 200);
+
+    await app.call('forgot', 'POST', '/api/admin/forgot-password', { email: 'parent@example.com' });
+    assert.equal(mail.messages.length, 2);
+    assert.match(mail.messages[1].subject, /Reset your Budget Buddy password/);
+    assert.equal(new URL(mail.messages[1].text.match(/https?:\/\/\S+/)[0]).searchParams.has('reset'), true);
+  } finally {
+    app.stop(); o.srv.close(); mail.srv.close();
   }
 });

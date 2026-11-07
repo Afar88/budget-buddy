@@ -98,6 +98,9 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
+function createToken() { return crypto.randomBytes(32).toString('hex'); }
+function hashToken(token) { return crypto.createHash('sha256').update(String(token)).digest('hex'); }
+
 function checkHash(password, stored) {
   const [salt, hash] = String(stored || '').split(':');
   if (!salt || !hash) return false;
@@ -115,7 +118,13 @@ function requireAdmin(req, res, next) {
     return next();
   }
   if (v && v.startsWith('admin:')) {
-    req.groupId = v.slice(6);
+    const [groupId, version] = v.slice(6).split(':');
+    const group = require('./store').db.groups.find((g) => g.id === groupId);
+    if (!group || (group.sessionVersion && version !== group.sessionVersion)) {
+      res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
+      return;
+    }
+    req.groupId = groupId;
     return next();
   }
   res.status(401).json({ error: 'Admin sign-in required' });
@@ -126,4 +135,4 @@ function memberIdFrom(req) {
   return v && v.startsWith('member:') ? v.slice(7) : null;
 }
 
-module.exports = { sign, verify, setCookie, clearCookie, checkPassword, hashPassword, checkHash, requireAdmin, memberIdFrom, rateLimit };
+module.exports = { sign, verify, setCookie, clearCookie, checkPassword, hashPassword, checkHash, createToken, hashToken, requireAdmin, memberIdFrom, rateLimit };

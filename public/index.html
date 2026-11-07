@@ -77,8 +77,42 @@
         <button type="submit">Sign in</button>
       </form>
       <p id="admin-error" class="error" role="alert" aria-live="polite"></p>
+      <button id="forgot-open" type="button" class="link small">Forgot password?</button>
+      <p id="auth-notice" class="muted small" role="status" aria-live="polite"></p>
       <button id="login-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">New here? <button id="to-signup" class="link small">Create a free account</button> for your family or class.</p>
+    </section>
+
+    <section id="view-forgot" class="view card narrow hidden">
+      <h1>Reset your password</h1>
+      <p class="muted">Enter your account email and we’ll send a secure reset link if an account exists.</p>
+      <form id="form-forgot" class="stack">
+        <input id="forgot-email" type="email" placeholder="Your email" autocomplete="email" required />
+        <button type="submit">Send reset link</button>
+      </form>
+      <p id="forgot-message" class="muted small" role="status" aria-live="polite"></p>
+      <button id="forgot-back" type="button" class="ghost auth-back">← Back to sign in</button>
+    </section>
+
+    <section id="view-reset" class="view card narrow hidden">
+      <h1>Choose a new password</h1>
+      <form id="form-reset" class="stack">
+        <input id="reset-pass" type="password" placeholder="New password (8+ characters)" minlength="8" autocomplete="new-password" required />
+        <button type="submit">Update password</button>
+      </form>
+      <p id="reset-message" class="error" role="alert" aria-live="polite"></p>
+      <button id="reset-back" type="button" class="ghost auth-back">← Back to sign in</button>
+    </section>
+
+    <section id="view-verified" class="view card narrow hidden">
+      <h1>Check your inbox</h1>
+      <p id="verify-message" class="muted" role="status" aria-live="polite">We sent you a verification link.</p>
+      <form id="form-resend" class="stack">
+        <input id="resend-email" type="email" placeholder="Your email" autocomplete="email" required />
+        <button type="submit">Resend verification email</button>
+      </form>
+      <p id="resend-message" class="muted small" role="status" aria-live="polite"></p>
+      <button id="verified-login" type="button" class="ghost auth-back">Go to sign in</button>
     </section>
 
     <section id="view-admin-signup" class="view card narrow hidden">
