@@ -225,7 +225,8 @@ app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 
 app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) => {
   const m = findGroupMember(req);
-  if (!m?.otari?.keyId) return res.status(400).json({ error: 'This member has no own Otari key to rotate' });
+  if (!m) return res.status(404).json({ error: 'No such member' });
+  if (!m.otari?.keyId) return res.status(400).json({ error: 'This member has no own Otari key to rotate' });
   try {
     Object.assign(m.otari, await otari.rotateKey(m.otari.keyId));
   } catch (e) {
