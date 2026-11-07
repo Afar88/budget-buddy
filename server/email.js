@@ -16,7 +16,7 @@ async function sendEmail({ to, subject, text, html }) {
     ? (process.env.SENDLIBERTY_API_URL || 'https://sendliberty.com/api/send')
     : (process.env.RESEND_API_URL || 'https://api.resend.com/emails');
   const payload = sendliberty
-    ? { ...(process.env.SENDLIBERTY_FROM ? { from: process.env.SENDLIBERTY_FROM } : {}), to, subject, text, html }
+    ? { from: process.env.SENDLIBERTY_FROM, to, subject, text, html }
     : { from: process.env.EMAIL_FROM, to: [to], subject, text, html };
   const apiKey = sendliberty ? process.env.SENDLIBERTY_API_KEY : process.env.RESEND_API_KEY;
   const response = await fetch(endpoint, {
