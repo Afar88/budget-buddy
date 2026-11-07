@@ -164,3 +164,22 @@ test('open sign-up: each grown-up gets a private group with limits', async () =>
     o.srv.close();
   }
 });
+
+
+test('authentication endpoints throttle repeated attempts', async () => {
+  const o = await mock.start();
+  const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
+  try {
+    for (let i = 0; i < 10; i++) {
+      assert.equal((await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' })).status, 401);
+    }
+    const blockedAdmin = await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' });
+    assert.equal(blockedAdmin.status, 429);
+    assert.ok(Number(blockedAdmin.body && blockedAdmin.body.retryAfter || 0) >= 0 || blockedAdmin.status === 429);
+
+    for (let i = 0; i < 10; i++) {
+      assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 401);
+    }
+    assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 429);
+  } finally { app.stop(); o.srv.close(); }
+});
