@@ -62,6 +62,21 @@ $('menu-logout').addEventListener('click', async () => {
   show('landing');
 });
 
+function setFormBusy(form, busy, busyText) {
+  const button = form.querySelector('button[type="submit"]');
+  if (!button) return;
+  if (busy) {
+    button.dataset.idleText = button.textContent;
+    button.textContent = busyText;
+    button.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+  } else {
+    button.textContent = button.dataset.idleText || button.textContent;
+    button.disabled = false;
+    form.removeAttribute('aria-busy');
+  }
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     method: opts.method || 'GET',
@@ -98,14 +113,20 @@ function escapeHtml(s) {
 }
 
 // ---------- landing ----------
+$('code').addEventListener('input', () => {
+  $('code').value = $('code').value.toUpperCase().replace(/[^A-HJ-KM-NP-Z2-9]/g, '').slice(0, 6);
+});
 $('form-code').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('code-error').textContent = '';
+  setFormBusy(e.currentTarget, true, 'Joining…');
   try {
-    await api('/api/member/login', { method: 'POST', body: { code: $('code').value } });
-    openChat();
+    await api('/api/member/login', { method: 'POST', body: { code: $('code').value.trim() } });
+    await openChat();
   } catch (err) {
     $('code-error').textContent = err.message;
+  } finally {
+    setFormBusy(e.currentTarget, false);
   }
 });
 
@@ -113,12 +134,15 @@ $('form-code').addEventListener('submit', async (e) => {
 $('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('admin-error').textContent = '';
+  setFormBusy(e.currentTarget, true, 'Signing in…');
   try {
     await api('/api/admin/login', { method: 'POST', body: { email: $('admin-email').value, password: $('admin-pass').value } });
     $('admin-pass').value = '';
     openAdmin();
   } catch (err) {
     $('admin-error').textContent = err.message;
+  } finally {
+    setFormBusy(e.currentTarget, false);
   }
 });
 
@@ -132,6 +156,7 @@ $('to-login').addEventListener('click', () => show('admin-login'));
 $('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('signup-error').textContent = '';
+  setFormBusy(e.currentTarget, true, 'Creating account…');
   try {
     await api('/api/admin/signup', {
       method: 'POST',
@@ -141,6 +166,8 @@ $('form-signup').addEventListener('submit', async (e) => {
     openAdmin();
   } catch (err) {
     $('signup-error').textContent = err.message;
+  } finally {
+    setFormBusy(e.currentTarget, false);
   }
 });
 
@@ -149,6 +176,8 @@ $('form-member').addEventListener('submit', async (e) => {
   $('member-error').textContent = '';
   const btn = e.submitter;
   btn.disabled = true;
+  btn.dataset.idleText = btn.textContent;
+  btn.textContent = 'Adding…';
   try {
     await api('/api/admin/members', {
       method: 'POST',
@@ -160,6 +189,7 @@ $('form-member').addEventListener('submit', async (e) => {
     $('member-error').textContent = err.message;
   } finally {
     btn.disabled = false;
+    btn.textContent = btn.dataset.idleText || 'Add member';
   }
 });
 
