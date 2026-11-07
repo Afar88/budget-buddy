@@ -144,7 +144,13 @@ $('form-admin').addEventListener('submit', async (e) => {
     $('auth-notice').textContent = '';
     openAdmin();
   } catch (err) {
-    $('admin-error').textContent = err.message;
+    if (err.status === 403) {
+      $('resend-email').value = $('admin-email').value;
+      $('verify-message').textContent = err.message;
+      show('verified');
+    } else {
+      $('admin-error').textContent = err.message;
+    }
   } finally {
     setFormBusy(form, false);
   }
