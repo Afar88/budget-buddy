@@ -164,6 +164,7 @@ $('cta-login').addEventListener('click', () => show('admin-login'));
 $('to-login').addEventListener('click', () => show('admin-login'));
 $('forgot-open').addEventListener('click', () => { $('forgot-email').value = $('admin-email').value; $('forgot-message').textContent = ''; show('forgot'); });
 $('forgot-back').addEventListener('click', () => show('admin-login'));
+$('reset-back').addEventListener('click', () => show('admin-login'));
 $('verified-login').addEventListener('click', () => show('admin-login'));
 
 $('form-forgot').addEventListener('submit', async (e) => {

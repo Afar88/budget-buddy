@@ -5,7 +5,7 @@ function escapeHtml(value) {
 
 function configured() {
   // Sendliberty relays through a connected Gmail account and does not require a custom domain.
-  if (process.env.SENDLIBERTY_API_KEY) return true;
+  if (process.env.SENDLIBERTY_API_KEY && process.env.SENDLIBERTY_FROM) return true;
   return !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
