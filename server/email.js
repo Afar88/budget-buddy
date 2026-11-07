@@ -4,16 +4,25 @@ function escapeHtml(value) {
 }
 
 function configured() {
+  // Sendliberty relays through a connected Gmail account and does not require a custom domain.
+  if (process.env.SENDLIBERTY_API_KEY) return true;
   return !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
 async function sendEmail({ to, subject, text, html }) {
   if (!configured()) throw new Error('Email delivery is not configured');
-  const endpoint = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
+  const sendliberty = !!process.env.SENDLIBERTY_API_KEY;
+  const endpoint = sendliberty
+    ? (process.env.SENDLIBERTY_API_URL || 'https://sendliberty.com/api/send')
+    : (process.env.RESEND_API_URL || 'https://api.resend.com/emails');
+  const payload = sendliberty
+    ? { ...(process.env.SENDLIBERTY_FROM ? { from: process.env.SENDLIBERTY_FROM } : {}), to, subject, text, html }
+    : { from: process.env.EMAIL_FROM, to: [to], subject, text, html };
+  const apiKey = sendliberty ? process.env.SENDLIBERTY_API_KEY : process.env.RESEND_API_KEY;
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text, html }),
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
