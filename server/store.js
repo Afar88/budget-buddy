@@ -17,6 +17,9 @@ const REDIS_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 const REDIS_KEY = process.env.REDIS_KEY || 'budget-buddy:db';
 const backend = REDIS_URL && REDIS_TOKEN ? 'redis' : 'file';
+const WRITE_LOCK_KEY = `${REDIS_KEY}:write-lock`;
+const WRITE_LOCK_TTL_MS = 120_000;
+const localLocks = new Set();
 
 const EMPTY = { settings: { groupName: 'Our group' }, groups: [], members: [], ledger: [] };
 
@@ -60,6 +63,28 @@ async function load() {
   }
 }
 
+// A short distributed lease serializes read-modify-write API requests across Vercel instances.
+// The owner token ensures one instance can never release another instance's lock.
+async function acquireWriteLock() {
+  const token = crypto.randomUUID();
+  if (backend === 'redis') {
+    const result = await redis(['SET', WRITE_LOCK_KEY, token, 'NX', 'PX', WRITE_LOCK_TTL_MS]);
+    return result === 'OK' ? { token, key: WRITE_LOCK_KEY } : null;
+  }
+  if (localLocks.has('write')) return null;
+  localLocks.add('write');
+  return { token, key: 'local:write' };
+}
+
+async function releaseWriteLock(lock) {
+  if (!lock) return;
+  if (backend === 'redis') {
+    await redis(['EVAL', "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end", 1, lock.key, lock.token]);
+    return;
+  }
+  localLocks.delete('write');
+}
+
 async function save() {
   // Keep the ledger bounded: only the last 8 weeks matter for weekly caps.
   const cutoff = Date.now() - 56 * 24 * 3600 * 1000;
@@ -88,4 +113,4 @@ function newJoinCode() {
   return code;
 }
 
-module.exports = { db, load, save, newId, newJoinCode, DATA_FILE, backend };
+module.exports = { db, load, save, newId, newJoinCode, acquireWriteLock, releaseWriteLock, DATA_FILE, backend };
