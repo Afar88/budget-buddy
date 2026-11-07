@@ -18,7 +18,9 @@ function show(name) {
   $('account-menu').classList.toggle('hidden', !signedIn);
   $('nav-admin').classList.toggle('hidden', signedIn);
   $('menu-heading').textContent = name === 'admin' ? 'Parent / teacher' : 'Teen account';
-  $('menu-primary').textContent = name === 'admin' ? 'Group dashboard' : 'My budget';
+  $('menu-budget').classList.toggle('hidden', name !== 'chat');
+  $('menu-primary').classList.toggle('hidden', name === 'chat');
+  $('menu-primary').textContent = 'Group dashboard';
   $('menu-secondary').textContent = name === 'admin' ? 'Refresh members' : 'Clear chat';
   closeMenu();
   clearInterval(pollTimer);
@@ -39,8 +41,7 @@ document.addEventListener('keydown', (e) => {
 });
 $('menu-primary').addEventListener('click', () => {
   closeMenu();
-  if (activeView === 'chat') $('me-bar').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  else $('admin-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (activeView !== 'chat') $('admin-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 $('menu-secondary').addEventListener('click', async () => {
   closeMenu();
