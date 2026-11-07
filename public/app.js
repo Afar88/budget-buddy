@@ -1,6 +1,6 @@
 // Budget Buddy front end: plain JS, no build step.
 const $ = (id) => document.getElementById(id);
-const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'chat'];
+const views = ['landing', 'admin-login', 'admin-signup', 'admin', 'admin-group', 'chat'];
 let pollTimer = null;
 let me = null;
 let activeView = 'landing';
@@ -14,16 +14,16 @@ function closeMenu() {
 function show(name) {
   activeView = name;
   views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
-  const signedIn = name === 'admin' || name === 'chat';
+  const signedIn = name === 'admin' || name === 'admin-group' || name === 'chat';
   $('account-menu').classList.toggle('hidden', !signedIn);
   $('nav-admin').classList.toggle('hidden', signedIn);
-  $('menu-heading').textContent = name === 'admin' ? 'Parent / teacher' : 'Teen account';
+  $('menu-heading').textContent = name === 'admin' || name === 'admin-group' ? 'Parent / teacher' : 'Teen account';
   $('menu-budget').classList.toggle('hidden', name !== 'chat');
   $('menu-primary').classList.toggle('hidden', name === 'chat');
-  $('menu-primary').textContent = 'Group dashboard';
-  $('menu-secondary').textContent = name === 'admin' ? 'Refresh members' : 'Clear chat';
+  $('menu-primary').textContent = name === 'admin-group' ? 'Back to dashboard' : 'Group dashboard';
+  $('menu-secondary').textContent = name === 'admin' || name === 'admin-group' ? 'Refresh members' : 'Clear chat';
+  if (!['admin','admin-group'].includes(name)) clearInterval(pollTimer);
   closeMenu();
-  clearInterval(pollTimer);
 }
 
 // Account menu: the parent and member see different actions.
@@ -41,7 +41,8 @@ document.addEventListener('keydown', (e) => {
 });
 $('menu-primary').addEventListener('click', () => {
   closeMenu();
-  if (activeView !== 'chat') $('admin-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (activeView === 'admin') show('admin-group');
+  else if (activeView === 'admin-group') show('admin');
 });
 $('menu-secondary').addEventListener('click', async () => {
   closeMenu();
@@ -173,8 +174,11 @@ $('form-member').addEventListener('submit', async (e) => {
 async function openAdmin() {
   show('admin');
   await refreshMembers();
+  clearInterval(pollTimer);
   pollTimer = setInterval(refreshMembers, 5000);
 }
+$('open-group').addEventListener('click', () => show('admin-group'));
+$('back-dashboard').addEventListener('click', () => show('admin'));
 
 async function refreshMembers() {
   let data;
@@ -187,6 +191,7 @@ async function refreshMembers() {
   }
   $('mode-badge').textContent = data.modeLabel || '';
   $('admin-title').textContent = data.groupName || 'Your group';
+  $('group-title').textContent = data.groupName || 'Group dashboard';
   $('group').textContent = data.groupName ? '· ' + data.groupName : '';
   $('limits').classList.toggle('hidden', !data.limits);
   if (data.limits) {
@@ -266,6 +271,17 @@ function saveHistory(h) {
 
 function renderMe() {
   $('hello').textContent = `Hi, ${me.name}!`;
+  const status = $('member-status');
+  if (me.aiStatus === 'paused') {
+    status.textContent = 'Your parent has paused AI chat for your account. You can still view your budget. Ask them when you can use it again.';
+    status.className = 'member-status paused';
+  } else if (me.aiStatus === 'not_configured') {
+    status.textContent = 'AI chat is not connected yet. Your parent has added your profile, but the app’s AI service still needs to be configured. Please try again later.';
+    status.className = 'member-status unavailable';
+  } else {
+    status.textContent = '';
+    status.className = 'member-status hidden';
+  }
   const left = Math.max(0, me.weeklyCapUsd - me.spentUsd);
   const pct = Math.min(100, (me.spentUsd / me.weeklyCapUsd) * 100 || 0);
   const bar = $('me-bar');
