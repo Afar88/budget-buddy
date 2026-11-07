@@ -1,4 +1,4 @@
-// Resend email delivery. No email content or credentials are logged.
+// Transactional email delivery via Sendliberty (Gmail relay) or Resend. No email body or credentials are logged.
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
