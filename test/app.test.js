@@ -279,3 +279,33 @@ test('Redis write lock prevents concurrent Vercel instances from overwriting sha
     a.stop(); b.stop(); o.srv.close(); r.srv.close(); mail.srv.close();
   }
 });
+
+
+test('Sendliberty domain-free Gmail relay sends verification and password reset messages', async () => {
+  const o = await mock.start();
+  const mail = await mockEmail();
+  const app = await boot({
+    OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key',
+    SENDLIBERTY_API_KEY: 'email-test-key', SENDLIBERTY_API_URL: mail.url + '/api/send',
+    APP_BASE_URL: 'https://budget-buddy.test',
+  });
+  try {
+    const signup = await app.call('a', 'POST', '/api/admin/signup', {
+      groupName: 'Test family', email: 'parent@example.com', password: 'longpass1',
+    });
+    assert.equal(signup.status, 201);
+    assert.equal(mail.messages.length, 1);
+    assert.equal(mail.messages[0].to, 'parent@example.com');
+    assert.match(mail.messages[0].subject, /Verify your Budget Buddy email/);
+    const verifyToken = new URL(mail.messages[0].text.match(/https?:\\/\\/\\S+/)[0]).searchParams.get('verify');
+    assert.ok(verifyToken);
+    assert.equal((await app.call('verify', 'POST', '/api/admin/verify-email', { token: verifyToken })).status, 200);
+
+    await app.call('forgot', 'POST', '/api/admin/forgot-password', { email: 'parent@example.com' });
+    assert.equal(mail.messages.length, 2);
+    assert.match(mail.messages[1].subject, /Reset your Budget Buddy password/);
+    assert.equal(new URL(mail.messages[1].text.match(/https?:\\/\\/\\S+/)[0]).searchParams.has('reset'), true);
+  } finally {
+    app.stop(); o.srv.close(); mail.srv.close();
+  }
+});
