@@ -114,7 +114,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const modeLabel = {
   managed: 'Otari: own key + budget per member',
   hosted: 'Otari: shared key, per-member caps',
-  off: 'Otari not configured',
+  off: 'AI service not configured',
 }[otari.mode];
 
 // ---------- public ----------
