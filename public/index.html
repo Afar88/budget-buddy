@@ -13,7 +13,6 @@
     <a class="brand" href="/">🪙 <b>Budget Buddy</b></a>
     <span id="group" class="muted"></span>
     <nav class="top-nav">
-      <button id="nav-admin" class="link">Grown-up / teacher</button>
       <div id="account-menu" class="account-menu hidden">
         <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu-panel">
           <span></span><span></span><span></span>
@@ -44,18 +43,18 @@
       <div class="split">
         <div class="card door">
           <div class="door-icon">🧒</div>
-          <h2>I have a code</h2>
-          <p class="muted">Type the code your parent or teacher gave you.</p>
+          <h2>Teen / student sign-up</h2>
+          <p class="muted">Join your family or class with the code your parent or teacher gave you. No email or password needed.</p>
           <form id="form-code" class="row">
             <input id="code" placeholder="e.g. K7MPQ2" maxlength="6" autocomplete="off" inputmode="text" required />
-            <button type="submit">Start</button>
+            <button type="submit">Join my group</button>
           </form>
           <p id="code-error" class="error"></p>
         </div>
         <div class="card door">
           <div class="door-icon">👩‍🏫</div>
-          <h2>I'm a parent or teacher</h2>
-          <p class="muted">Create a free group, add members, and give each one a join code.</p>
+          <h2>Parent / teacher sign-up</h2>
+          <p class="muted">Create your account, set up a family or class, and invite teens with their own join codes.</p>
           <div class="row wrap">
             <button id="cta-signup" type="button">Create free account</button>
             <button id="cta-login" type="button" class="ghost lg">Sign in</button>
@@ -71,26 +70,28 @@
 
     <!-- Admin login / sign-up -->
     <section id="view-admin-login" class="view card narrow hidden">
-      <h1>Grown-up sign in</h1>
+      <h1>Parent / teacher sign in</h1>
       <form id="form-admin" class="stack">
         <input id="admin-email" type="email" placeholder="Email" autocomplete="username" />
         <input id="admin-pass" type="password" placeholder="Password" autocomplete="current-password" required />
         <button type="submit">Sign in</button>
       </form>
       <p id="admin-error" class="error"></p>
+      <button id="login-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">New here? <button id="to-signup" class="link small">Create a free account</button> for your family or class.</p>
     </section>
 
     <section id="view-admin-signup" class="view card narrow hidden">
-      <h1>Create your group</h1>
-      <p class="muted">Set up Budget Buddy for your family or class. You'll add members and get a join code for each.</p>
+      <h1>Create your free account</h1>
+      <p class="muted">Start with your family, classroom, club or group. You can add members and set their weekly budgets after signing up.</p>
       <form id="form-signup" class="stack">
-        <input id="su-group" placeholder="Family or class name (e.g. The Okafors, Year 6B)" maxlength="40" required />
+        <input id="su-group" placeholder="Group name (family, class, club…)" maxlength="40" required />
         <input id="su-email" type="email" placeholder="Your email" autocomplete="username" required />
         <input id="su-pass" type="password" placeholder="Password (8+ characters)" minlength="8" autocomplete="new-password" required />
         <button type="submit">Create account</button>
       </form>
       <p id="signup-error" class="error"></p>
+      <button id="signup-back" type="button" class="ghost auth-back">← Back to sign-up options</button>
       <p class="muted small">Already have one? <button id="to-login" class="link small">Sign in</button></p>
     </section>
 
