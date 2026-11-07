@@ -143,3 +143,11 @@ button.copy{border:1px solid #d5ecdf;background:var(--accent-soft);color:#106344
 #view-admin-group .members{margin-top:14px}
 #view-admin-group .spread{align-items:center}
 @media(max-width:760px){#view-admin-group .members{display:block;overflow-x:auto;white-space:nowrap}}
+
+
+/* Clear, responsive feedback while forms are submitting. */
+form[aria-busy="true"]{opacity:.82}
+form[aria-busy="true"] button[type="submit"]{cursor:wait}
+input:invalid:not(:placeholder-shown){border-color:#d58b83}
+.error:empty{min-height:.35em}
+@media(max-width:520px){#view-admin-login,#view-admin-signup{margin:18px auto}.auth-back{width:100%;margin-top:4px}.door .row{align-items:stretch}.door .row button{flex:1}}
