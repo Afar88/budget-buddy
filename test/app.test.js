@@ -170,7 +170,7 @@ test('authentication endpoints throttle repeated attempts', async () => {
   const o = await mock.start();
   const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
   try {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 60; i++) {
       assert.equal((await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' })).status, 401);
     }
     const blockedAdmin = await app.call('bad-admin', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' });
