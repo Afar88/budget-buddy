@@ -7,6 +7,10 @@
   <meta name="description" content="AI chat for families and classrooms, with a weekly budget for everyone. Powered by Otari." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1f7a55" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
 </head>
 <body>
   <header class="top">
@@ -160,7 +164,7 @@
       <div class="card">
         <div class="spread">
           <div><p class="eyebrow">YOUR GROUP</p><h1 id="group-title">Group dashboard</h1></div>
-          <button id="back-dashboard" type="button" class="ghost">Back</button>
+          <div class="row gap-2"><a id="btn-export-csv" href="/api/admin/export-csv" class="ghost" download>Export CSV</a><button id="back-dashboard" type="button" class="ghost">Back</button></div>
         </div>
         <p class="muted small">Manage each child’s join code, weekly budget, AI access and account status here.</p>
         <table class="members">
@@ -179,6 +183,12 @@
         </div>
         <div id="member-status" class="member-status hidden" role="status"></div>
         <div id="chat" class="chat"></div>
+                <div id="tutor-chips" class="chips" style="margin-bottom: 8px;">
+          <button type="button" class="subject-chip" data-prompt="Can you act as my Math Socratic Tutor? Guide me step-by-step through solving this without giving the answer right away: ">🧮 Math Tutor</button>
+          <button type="button" class="subject-chip" data-prompt="Can you act as my Science Lab Helper? Explain this scientific concept with a simple analogy: ">🔬 Science Lab</button>
+          <button type="button" class="subject-chip" data-prompt="Can you act as my Creative Writing Coach? Help me brainstorm ideas for a story about: ">✍️ Creative Writing</button>
+          <button type="button" class="subject-chip" data-prompt="Can you act as my History Detective? What was life like during this historical period: ">🌍 History Detective</button>
+        </div>
         <div id="chips" class="chips"></div>
         <form id="form-chat" class="row">
           <input id="msg" placeholder="Ask me anything…" maxlength="2000" autocomplete="off" required />
@@ -188,6 +198,23 @@
         <p class="muted small">Every answer costs a tiny bit of your weekly budget. Your chat history stays here until you clear it from the menu.</p>
       </div>
     </section>
+    <!-- QR Code Student Sign-In Modal -->
+  <div id="qr-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+    <div class="modal-card">
+      <h2 id="qr-modal-title" style="margin: 0 0 6px 0;">Student Sign-In Card</h2>
+      <p id="qr-modal-sub" class="muted small" style="margin: 0 0 16px 0;">Scan with an iPad, Chromebook, or phone camera to log in instantly.</p>
+      <div id="qr-svg-wrapper" class="qr-container"></div>
+      <div>
+        <p class="small muted" style="margin: 0 0 4px 0;">Or sign in with join code:</p>
+        <h1 id="qr-modal-code" style="letter-spacing: 5px; font-family: monospace; margin: 4px 0 12px; color: var(--accent);">------</h1>
+      </div>
+      <div class="modal-actions">
+        <button id="qr-copy-btn" type="button" class="ghost">Copy Link</button>
+        <button id="qr-print-btn" type="button" class="ghost">Print Card</button>
+        <button id="qr-close-btn" type="button">Close</button>
+      </div>
+    </div>
+  </div>
   </main>
 
   <footer class="muted small">Built by Avie · AI by <a href="https://otari.ai" target="_blank" rel="noopener">Otari</a> from Mozilla.ai</footer>

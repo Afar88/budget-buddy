@@ -35,8 +35,10 @@ Budget Buddy separates duties between grown-ups (who manage accounts, budgets, a
   2. Set their weekly AI spending cap in dollars (e.g., `$0.50` or `$1.00`).
   3. Click **Add member**. Budget Buddy creates a unique, kid-friendly 6-character join code (e.g., `K9M2PX`, using characters with no look-alikes like `0/O` or `1/I/L`).
 
-* **Share the Join Code**:
-  * Privately give each learner their 6-character join code. They do not need an email, phone number, or password to log in.
+* **Share Join Code or Printable QR Cards**:
+  * Tap **QR** next to any member to open their ready-to-print student card with an instant-scan QR code and 6-character code.
+  * Tap **New code** anytime to rotate a compromised or shared join code immediately.
+  * Tap **Export CSV** on the group dashboard to download a full breakdown of member usage, spending, and limits.
 
 * **Live Monitoring & Safety Controls**:
   * **Real-Time Usage**: Monitor exact spent amounts, message counts, and live cost-per-chat.
@@ -150,7 +152,7 @@ The project has no frontend build step. `api/index.js` serves the Express app as
 
 - Parent/teacher member-management routes verify group ownership. Requests to edit, rotate or delete another group's member are rejected.
 - Admin login is limited to 10 attempts per IP per 15 minutes, group signup to 5, and member join-code login to 60 to avoid blocking a whole classroom behind one shared school network. On Redis-backed deployments, these counters are atomic and shared across Vercel instances; if Redis is unavailable, sign-in endpoints fail closed with HTTP 503. Local development uses an in-memory fallback. Edge/WAF limits remain useful as an additional layer.
-- Treat join codes as credentials. Share them privately. The current app does not yet offer self-service join-code rotation.
+- Treat join codes as credentials. Share them privately. Adults can rotate a member’s 6-character join code at any time with the **New code** button on the group dashboard.
 - Keep Redis connected on Vercel and use a strong `SESSION_SECRET`. Never commit environment files or send private Otari keys to the browser.
 - The Redis adapter stores app state as one JSON document, but state-changing API requests now acquire a distributed Redis lease before loading and saving it. This prevents concurrent Vercel instances from overwriting each other's snapshots. The lease lasts 120 seconds; keep Vercel function execution limits below that duration. If another writer holds the lease, the request fails closed with HTTP 503 and `Retry-After` rather than writing stale state. This is a safe low-volume workaround, not a substitute for a normalized transactional database at higher scale.
 - Hosted-mode budget checks and ledger writes run under the same distributed write lock, preventing overlapping chats from both spending the same remaining balance. The trade-off is that writes and chat requests are serialized across the whole app, so throughput is intentionally limited. A future normalized data model can replace this coarse lock with per-member atomic reservations.
@@ -185,6 +187,7 @@ test/               Integration tests and mock Otari service
 - This project is released under the MIT License.
 
 ## Changelog
+- **2026-11-07:** Added real-time streaming chat responses (SSE), student QR code sign-in cards, 1-click self-service join-code rotation, CSV reporting export for parents and teachers, educational subject tutor modes (Math, Science, Writing, History), and PWA tablet/mobile offline shell installability.
 
 - **2026-11-07:** Added domain-free Sendliberty Gmail-relay support alongside Resend for verification and password recovery; both use expiring hashed one-time tokens, rate limits and session invalidation on password reset.
 - **2026-11-07:** Added atomic Redis-backed authentication throttling shared across Vercel instances, with fail-closed behaviour when Redis is unavailable and cross-instance coverage.

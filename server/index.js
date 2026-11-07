@@ -323,6 +323,54 @@ app.patch('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
   res.json({ member: await publicMember(m, { forAdmin: true }) });
 });
 
+// Rotate member join code
+app.post('/api/admin/members/:id/rotate-code', auth.requireAdmin, async (req, res) => {
+  const m = findGroupMember(req);
+  if (!m) return res.status(404).json({ error: 'No such member' });
+  let code = store.newJoinCode();
+  while (db.members.some((x) => x.code === code)) code = store.newJoinCode();
+  m.code = code;
+  await store.save();
+  res.json({ member: await publicMember(m, { forAdmin: true }) });
+});
+
+// Member QR code for quick scanning
+app.get('/api/admin/members/:id/qr', auth.requireAdmin, async (req, res) => {
+  const m = findGroupMember(req);
+  if (!m) return res.status(404).json({ error: 'No such member' });
+  const base = (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+  const joinUrl = `${base}/?join=${encodeURIComponent(m.code)}`;
+  try {
+    const QRCode = require('qrcode');
+    const svg = await QRCode.toString(joinUrl, { type: 'svg', margin: 1, width: 220 });
+    res.json({ svg, joinUrl, code: m.code, name: m.name });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to generate QR code' });
+  }
+});
+
+// Export CSV report for parents & teachers
+app.get('/api/admin/export-csv', auth.requireAdmin, async (req, res) => {
+  const mine = db.members.filter((m) => groupOf(m) === req.groupId);
+  const members = await Promise.all(mine.map((m) => publicMember(m, { forAdmin: true })));
+  const rows = [
+    ['Member Name', 'Join Code', 'Weekly Cap USD', 'Spent This Week USD', 'Requests This Week', 'Status', 'Resets At'],
+    ...members.map((m) => [
+      `"${String(m.name).replace(/"/g, '""')}"`,
+      m.code,
+      m.weeklyCapUsd.toFixed(2),
+      m.spentUsd.toFixed(6),
+      m.requests,
+      m.paused ? 'Paused' : 'Active',
+      m.resetsAt ? new Date(m.resetsAt).toISOString() : 'Monday 00:00 UTC',
+    ]),
+  ];
+  const csv = rows.map((r) => r.join(',')).join('\r\n');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="budget-buddy-${req.groupId}-report.csv"`);
+  res.send(csv);
+});
+
 app.post('/api/admin/members/:id/rotate', auth.requireAdmin, async (req, res) => {
   const m = findGroupMember(req);
   if (!m) return res.status(404).json({ error: 'No such member' });
@@ -406,6 +454,18 @@ app.post('/api/chat', async (req, res) => {
     });
     await store.save();
     if (m.otari?.userId) userCache.delete(m.otari.userId);
+    const isStream = req.query.stream === '1' || req.headers.accept?.includes('text/event-stream');
+    if (isStream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      const chunks = out.reply.split(/(?<=\s+)/);
+      for (const chunk of chunks) {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      }
+      res.write(`data: ${JSON.stringify({ done: true, reply: out.reply, costUsd: out.costUsd, model: out.model, member: await publicMember(m) })}\n\n`);
+      return res.end();
+    }
     res.json({ reply: out.reply, costUsd: out.costUsd, model: out.model, requestId: out.requestId, member: await publicMember(m) });
   } catch (e) {
     if (e instanceof otari.OtariError && e.isBudget) {

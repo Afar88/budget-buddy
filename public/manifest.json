@@ -1,0 +1,17 @@
+{
+  "name": "Budget Buddy",
+  "short_name": "BudgetBuddy",
+  "description": "Family and classroom friendly AI chat with per-member weekly spending limits.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#1f7a55",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

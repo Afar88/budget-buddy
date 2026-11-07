@@ -21,7 +21,9 @@ async function boot(env) {
       method, headers: { 'content-type': 'application/json', cookie: jar[who] || '' }, body: body && JSON.stringify(body),
     });
     const sc = res.headers.get('set-cookie'); if (sc) jar[who] = sc.split(';')[0];
-    return { status: res.status, retryAfter: res.headers.get('retry-after'), body: await res.json() };
+    const ct = res.headers.get('content-type') || '';
+    const responseBody = ct.includes('json') ? await res.json().catch(() => ({})) : await res.text();
+    return { status: res.status, retryAfter: res.headers.get('retry-after'), body: responseBody };
   };
   return { call, stop: () => { child.kill(); fs.rmSync(dataFile, { force: true }); } };
 }
@@ -308,5 +310,44 @@ test('Sendliberty domain-free Gmail relay sends verification and password reset 
     assert.equal(new URL(mail.messages[1].text.match(/https?:\/\/\S+/)[0]).searchParams.has('reset'), true);
   } finally {
     app.stop(); o.srv.close(); mail.srv.close();
+  }
+});
+
+test('join-code rotation, QR code generation, CSV export and streaming chat', async () => {
+  const o = await mock.start();
+  const app = await boot({ OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key' });
+  try {
+    assert.equal((await app.call('admin', 'POST', '/api/admin/login', { password: 'pw' })).status, 200);
+    const created = await app.call('admin', 'POST', '/api/admin/members', { name: 'Maya', weeklyCapUsd: 0.5 });
+    assert.equal(created.status, 201);
+    const memberId = created.body.member.id;
+    const initialCode = created.body.member.code;
+
+    // 1. QR Code endpoint
+    const qrRes = await app.call('admin', 'GET', `/api/admin/members/${memberId}/qr`);
+    assert.equal(qrRes.status, 200);
+    assert.ok(qrRes.body.svg.includes('<svg'), 'QR code SVG returned');
+    assert.equal(qrRes.body.code, initialCode);
+
+    // 2. CSV Export endpoint
+    const csvRes = await app.call('admin', 'GET', '/api/admin/export-csv');
+    assert.equal(csvRes.status, 200);
+
+    // 3. Rotate join code
+    const rotated = await app.call('admin', 'POST', `/api/admin/members/${memberId}/rotate-code`);
+    assert.equal(rotated.status, 200);
+    const newCode = rotated.body.member.code;
+    assert.notEqual(newCode, initialCode, 'join code rotated');
+
+    // Old code rejected, new code accepted
+    assert.equal((await app.call('kid-old', 'POST', '/api/member/login', { code: initialCode })).status, 401);
+    assert.equal((await app.call('kid-new', 'POST', '/api/member/login', { code: newCode })).status, 200);
+
+    // 4. Chat request with streaming SSE
+    const chatRes = await app.call('kid-new', 'POST', '/api/chat?stream=1', { messages: [{ role: 'user', content: 'hello' }] });
+    assert.equal(chatRes.status, 200);
+  } finally {
+    app.stop();
+    o.srv.close();
   }
 });

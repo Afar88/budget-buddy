@@ -12,10 +12,18 @@
   "engines": {
     "node": ">=18.17"
   },
-  "keywords": ["otari", "mozilla-ai", "llm-gateway", "budgets", "family", "classroom"],
+  "keywords": [
+    "otari",
+    "mozilla-ai",
+    "llm-gateway",
+    "budgets",
+    "family",
+    "classroom"
+  ],
   "author": "Avie (Afar88)",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4"
   }
 }

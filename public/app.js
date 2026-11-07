@@ -295,6 +295,8 @@ async function refreshMembers() {
         <td>${m.requests ?? 0}</td>
         <td class="small">${escapeHtml(m.keyLabel || '')}</td>
         <td class="row">
+          <button class="ghost" data-act="qr" title="Show student QR sign-in code">QR</button>
+          <button class="ghost" data-act="rotate-code" title="Generate new 6-character code">New code</button>
           <button class="ghost" data-act="cap">Cap</button>
           <button class="ghost" data-act="pause">${m.paused ? 'Resume' : 'Pause'}</button>
           ${m.canRotate ? '<button class="ghost" data-act="rotate">New key</button>' : ''}
@@ -327,6 +329,17 @@ $('members').addEventListener('click', async (e) => {
     } else if (act === 'rotate') {
       if (!confirm('Issue a new Otari key for this member? The old one stops working.')) return;
       await api(`/api/admin/members/${id}/rotate`, { method: 'POST' });
+    } else if (act === 'qr') {
+      const data = await api(`/api/admin/members/${id}/qr`);
+      activeQrJoinUrl = data.joinUrl;
+      $('qr-modal-title').textContent = `${data.name}'s Sign-In Card`;
+      $('qr-svg-wrapper').innerHTML = data.svg;
+      $('qr-modal-code').textContent = data.code;
+      $('qr-modal').classList.remove('hidden');
+      return;
+    } else if (act === 'rotate-code') {
+      if (!confirm('Generate a new join code for this student? The old code will stop working.')) return;
+      await api(`/api/admin/members/${id}/rotate-code`, { method: 'POST' });
     } else if (act === 'remove') {
       if (!confirm('Remove this member and revoke their Otari key?')) return;
       await api(`/api/admin/members/${id}`, { method: 'DELETE' });
@@ -335,6 +348,28 @@ $('members').addEventListener('click', async (e) => {
   } catch (err) {
     $('member-error').textContent = err.message;
   }
+});
+
+
+let activeQrJoinUrl = '';
+$('qr-close-btn').addEventListener('click', () => $('qr-modal').classList.add('hidden'));
+$('qr-modal').addEventListener('click', (e) => {
+  if (e.target === $('qr-modal')) $('qr-modal').classList.add('hidden');
+});
+$('qr-copy-btn').addEventListener('click', async () => {
+  if (!activeQrJoinUrl) return;
+  await navigator.clipboard?.writeText(activeQrJoinUrl).catch(() => {});
+  const b = $('qr-copy-btn');
+  b.textContent = 'Copied link ✓';
+  setTimeout(() => (b.textContent = 'Copy Link'), 1400);
+});
+$('qr-print-btn').addEventListener('click', () => window.print());
+
+$('tutor-chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.subject-chip');
+  if (!chip) return;
+  $('msg').value = chip.dataset.prompt || '';
+  $('msg').focus();
 });
 
 // ---------- chat ----------
@@ -420,13 +455,62 @@ $('form-chat').addEventListener('submit', async (e) => {
   $('msg').value = '';
   $('send').disabled = true;
   try {
-    const out = await api('/api/chat', {
+    let replyText = '';
+    let costInfo = '';
+    // Attempt real-time streaming
+    const streamRes = await fetch('/api/chat?stream=1', {
       method: 'POST',
-      body: { messages: h.slice(-12).map(({ role, content }) => ({ role, content })) },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({ messages: h.slice(-12).map(({ role, content }) => ({ role, content })) }),
+      credentials: 'same-origin',
     });
-    h.push({ role: 'assistant', content: out.reply, cost: `cost ${usd(out.costUsd)} · ${out.model || ''}` });
-    saveHistory(h);
-    if (out.member) me = out.member;
+
+    if (streamRes.ok && streamRes.headers.get('content-type')?.includes('text/event-stream')) {
+      const reader = streamRes.body.getReader();
+      const decoder = new TextDecoder();
+      let streamBuffer = '';
+      
+      // Add empty assistant bubble that will receive chunks
+      h.push({ role: 'assistant', content: '' });
+      const assistantIdx = h.length - 1;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split('\n');
+        streamBuffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.chunk) {
+                replyText += data.chunk;
+                h[assistantIdx].content = replyText;
+                renderChat();
+              }
+              if (data.done) {
+                costInfo = `cost ${usd(data.costUsd)} · ${data.model || ''}`;
+                h[assistantIdx].cost = costInfo;
+                if (data.member) me = data.member;
+              }
+            } catch {}
+          }
+        }
+      }
+      saveHistory(h);
+    } else {
+      // Fallback to standard request
+      const data = await streamRes.json().catch(() => ({}));
+      if (!streamRes.ok) {
+        const err = new Error(data.error || `Request failed (${streamRes.status})`);
+        err.data = data;
+        throw err;
+      }
+      h.push({ role: 'assistant', content: data.reply, cost: `cost ${usd(data.costUsd)} · ${data.model || ''}` });
+      saveHistory(h);
+      if (data.member) me = data.member;
+    }
   } catch (err) {
     $('chat-error').textContent = err.message;
     if (err.data && err.data.member) me = err.data.member;
@@ -444,7 +528,25 @@ $('form-chat').addEventListener('submit', async (e) => {
     const cfg = await api('/api/config');
     $('group').textContent = cfg.groupName ? '· ' + cfg.groupName : '';
   } catch {}
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
   const params = new URLSearchParams(location.search);
+  const joinParam = params.get('join') || params.get('code');
+  if (joinParam) {
+    try {
+      await api('/api/member/login', { method: 'POST', body: { code: joinParam.trim().toUpperCase() } });
+      history.replaceState({}, '', '/');
+      openChat();
+      return;
+    } catch (err) {
+      history.replaceState({}, '', '/');
+      show('landing');
+      $('chat-error').textContent = err.message || 'Invalid join code';
+      return;
+    }
+  }
   const verify = params.get('verify');
   const reset = params.get('reset');
   if (verify) {
