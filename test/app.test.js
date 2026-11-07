@@ -101,6 +101,12 @@ function mockRedis() {
       else if (cmd === 'SET') {
         if (options.includes('NX') && data.has(key)) result = null;
         else { data.set(key, value); result = 'OK'; }
+      } else if (cmd === 'EVAL' && String(key).includes('INCR')) {
+        const rateKey = options[0];
+        const windowMs = Number(options[1]);
+        const count = Number(data.get(rateKey) || 0) + 1;
+        data.set(rateKey, count);
+        result = [count, windowMs];
       } else if (cmd === 'EVAL') {
         const lockKey = options[0];
         const token = options[1];
@@ -197,6 +203,24 @@ test('authentication endpoints throttle repeated attempts', async () => {
     }
     assert.equal((await app.call('bad-member', 'POST', '/api/member/login', { code: 'XXXXXX' })).status, 429);
   } finally { app.stop(); o.srv.close(); }
+});
+
+test('Redis auth throttling is shared across separate Vercel instances', async () => {
+  const o = await mock.start();
+  const r = await mockRedis();
+  const env = { OTARI_BASE_URL: o.url, OTARI_API_KEY: 'app-key', KV_REST_API_URL: r.url, KV_REST_API_TOKEN: 'redis-token' };
+  const a = await boot(env);
+  const b = await boot(env);
+  try {
+    for (let i = 0; i < 10; i++) {
+      const app = i % 2 ? a : b;
+      const result = await app.call('attacker-' + i, 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' });
+      assert.equal(result.status, 401);
+    }
+    const blocked = await b.call('attacker-final', 'POST', '/api/admin/login', { email: 'nobody@example.com', password: 'wrongpass' });
+    assert.equal(blocked.status, 429, 'the shared Redis counter blocks attempts across instances');
+    assert.ok(Number(blocked.retryAfter) > 0);
+  } finally { a.stop(); b.stop(); o.srv.close(); r.srv.close(); }
 });
 
 test('Redis write lock prevents concurrent Vercel instances from overwriting shared state', async () => {

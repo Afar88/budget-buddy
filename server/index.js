@@ -156,7 +156,7 @@ app.post('/api/logout', (req, res) => {
 
 // ---------- admin ----------
 // Open sign-up: any parent or teacher creates their own private group.
-app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5), async (req, res) => {
+app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5, 15 * 60 * 1000, store), async (req, res) => {
   const name = String(req.body?.groupName || '').trim().slice(0, 40);
   const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 120);
   const password = String(req.body?.password || '');
@@ -172,7 +172,7 @@ app.post('/api/admin/signup', auth.rateLimit('admin-signup', 5), async (req, res
   res.status(201).json({ ok: true, groupName: group.name });
 });
 
-app.post('/api/admin/login', auth.rateLimit('admin-login'), (req, res) => {
+app.post('/api/admin/login', auth.rateLimit('admin-login', 10, 15 * 60 * 1000, store), (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (email) {
     const g = db.groups.find((x) => x.email === email);
@@ -268,7 +268,7 @@ app.delete('/api/admin/members/:id', auth.requireAdmin, async (req, res) => {
 });
 
 // ---------- member ----------
-app.post('/api/member/login', auth.rateLimit('member-login', 60), (req, res) => {
+app.post('/api/member/login', auth.rateLimit('member-login', 60, 15 * 60 * 1000, store), (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const m = db.members.find((x) => x.code === code);
   if (!m) return res.status(401).json({ error: 'That code did not match anyone' });

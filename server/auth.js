@@ -4,9 +4,24 @@ const crypto = require('crypto');
 // Per-process baseline throttling. On serverless hosts, also configure edge/WAF limits
 // because separate function instances do not share this in-memory counter.
 const attempts = new Map();
-function rateLimit(scope, max = 10, windowMs = 15 * 60 * 1000) {
-  return (req, res, next) => {
-    const key = `${scope}:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+function rateLimit(scope, max = 10, windowMs = 15 * 60 * 1000, store = null) {
+  return async (req, res, next) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const identity = crypto.createHash('sha256').update(String(ip)).digest('hex').slice(0, 32);
+    if (store?.backend === 'redis') {
+      try {
+        const entry = await store.incrementRateLimit(`${scope}:${identity}`, windowMs);
+        if (entry.count > max) {
+          res.setHeader('Retry-After', String(Math.max(1, Math.ceil(entry.ttlMs / 1000))));
+          return res.status(429).json({ error: 'Too many attempts. Please wait a little and try again.' });
+        }
+        return next();
+      } catch (e) {
+        console.error('[auth] shared rate limiter unavailable:', e.message);
+        return res.status(503).json({ error: 'Sign-in protection is temporarily unavailable. Please try again shortly.' });
+      }
+    }
+    const key = `${scope}:${identity}`;
     const now = Date.now();
     let entry = attempts.get(key);
     if (!entry || entry.resetAt <= now) {
