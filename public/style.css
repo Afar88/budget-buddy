@@ -128,3 +128,10 @@ button.copy{border:1px solid #d5ecdf;background:var(--accent-soft);color:#106344
 .menu-panel .menu-signout{margin-top:5px;border-top:1px solid var(--line);border-radius:0 0 10px 10px;color:#a33b34}
 .menu-panel .menu-signout:hover{background:#fff1ef;color:#a33b34}
 @media(max-width:430px){.top-nav{gap:4px}.menu-toggle{width:44px}}
+
+
+/* Teen budget lives in the three-line account menu, not above the chat. */
+.menu-budget{padding:10px 11px 13px;margin:0 0 5px;border-bottom:1px solid var(--line)}
+.menu-budget-title{margin:0 0 9px;font-size:.82rem;font-weight:750;color:var(--ink)}
+.menu-budget .meter{width:100%;min-width:0;margin-bottom:7px}
+.menu-budget #me-left{display:block;color:var(--muted);line-height:1.4}
