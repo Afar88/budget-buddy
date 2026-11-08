@@ -6,7 +6,8 @@ A parent or teacher creates a private group, adds members, sets a weekly AI budg
 
 **Live app:** https://budget-buddy-one-mu.vercel.app  
 **Repository:** https://github.com/Afar88/budget-buddy  
-**Built by:** [Avie (@Afar88)](https://github.com/Afar88)
+**Built by:** [Avie (@Afar88)](https://github.com/Afar88)  
+**Demo video (4:56, my own screen recording and voice):** https://drive.google.com/file/d/1uxXpFaIEzkgidvh8V4tvTWwdNRlD6TCi/view
 
 ## Try the live app
 
@@ -191,3 +192,4 @@ test/               Integration tests and mock Otari service
 - **2026-11-07:** Added atomic Redis-backed authentication throttling shared across Vercel instances, with fail-closed behaviour when Redis is unavailable and cross-instance coverage.
 - **2026-11-07:** Added a distributed Redis write lock for state-changing requests, fail-closed retry responses, and cross-instance contention coverage. Hosted chat budget checks and ledger writes now run within the same lock; README documents the throughput trade-off.
 - **2026-11-07:** Added private group signup, group-scoped member management, hosted/managed Otari modes and the mobile-first onboarding refresh.
+- **2026-11-08:** Added the self-recorded demo video (4:56, trimmed from the original recording).
